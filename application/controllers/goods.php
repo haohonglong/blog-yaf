@@ -63,11 +63,27 @@ class GoodsController extends Base {
             }
         }
         $create_by = strtotime($create_by);
-        $update_by = $create_by;
 
         $data = [];
         if(empty($errors)){
+            $bill = new BillsModel();
+            $bill->bill_id = $bill_id;
+            $bill->shop_id = $shop_id;
+            $bill->discount = $discount;
+            $bill->create_at = $create_by;
+            $bill->update_at = $create_by;
 
+            $goods = new GoodsModel($bill);
+            $goods->shop_id = $shop_id;
+            $goods->bill_id = $bill_id;
+            $goods->create_by = $create_by;
+            $goods->update_by = $create_by;
+            $goods->name = $name;
+            $goods->number = $number;
+            $goods->weight = $weight;
+            $goods->single_price = $single_price;
+
+            $data = $goods->create();
 
         }else{
             $data['status'] = 0;

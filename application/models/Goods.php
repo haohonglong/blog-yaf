@@ -11,28 +11,15 @@ use Yaf\Registry;
 
 class GoodsModel
 {
-    public $shop_id,$bill_id,$create_by,$update_by;
+    public $shop_id=0,$bill_id,$create_by,$update_by;
     public  $name         = [],
             $number       = [],
             $weight       = [],
             $single_price = [];
+    public $bill=null;
 
-    public function __construct($data = [
-        'shop_id'=>0,
-        'bill_id'=>0,
-        'create_by'=>time(),
-        'update_by'=>time(),
-        'name'         => [],
-        'number'       => [],
-        'weight'       => [],
-        'single_price' => [],
-        ]) {
-
-        foreach ($data as $k => $v) {
-            $this->$k = $v;
-        }
-
-
+    public function __construct(BillsModel $bill) {
+        $this->bill = $bill;
     }
 
     public static function tableName() {
@@ -84,6 +71,8 @@ ORDER by g.create_by DESC
     public function create() {
         $datas = [];
         $data = [];
+
+        $total = 0;
         foreach ($this->name as $i => $v) {
             $datas[$i]['shop_id']       = $this->shop_id;
             $datas[$i]['bill_id']       = $this->bill_id;
@@ -93,8 +82,23 @@ ORDER by g.create_by DESC
             $datas[$i]['single_price']  = $this->single_price[$i];
             $datas[$i]['create_by']     = $this->create_by;
             $datas[$i]['update_by']     = $this->create_by;
+            $total += (double)$this->single_price[$i];
         }
-        $last_user_id = Registry::get('db')->insert(static::tableName(), $datas);
+
+        $n = BillsModel::getByBillId($this->bill_id);
+        $bill = $this->bill;
+        if(!isset($n)){
+            $bill->tatal_price = $total;
+            $data = $bill->create();
+
+        }else{
+            $data = $bill->edit($this->bill_id);
+
+        }
+        if(1 === $data['status']){
+            $last_user_id = Registry::get('db')->insert(static::tableName(), $datas);
+
+        }
 
         return $data;
     }
@@ -109,7 +113,7 @@ ORDER by g.create_by DESC
         'weight'       => '',
         'single_price' => 0,
     ]) {
-        $sth  = Yaf_Registry::get('db')->pdo->prepare("UPDATE ".GoodsModel::tableName() ." SET 
+        $sth  = Yaf_Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET 
             shop_id=:shop_id, 
             bill_id = :bill_id, 
             number = :number, 
