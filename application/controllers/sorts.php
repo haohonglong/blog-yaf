@@ -1,26 +1,25 @@
 <?php
 
-use app\models\Sorts;
 
 class SortsController extends Base {
 
     public function indexAction() {
-        $query = static::$DB->query("SELECT id,name,pid FROM ".Sorts::tableName()." WHERE pid=0")->fetchAll(PDO::FETCH_ASSOC);
+        $query = SortsModel::showListOfOneLevel();
         $json = json_encode($query,JSON_UNESCAPED_UNICODE);
         echo $json;
-        exit;
+        return false;
     }
 
     public function allAction() {
-        $query = static::$DB->query("SELECT id,name,pid FROM ".Sorts::tableName())->fetchAll(PDO::FETCH_ASSOC);
+        $query = SortsModel::showListOfAllLevels();
         $json = json_encode($query,JSON_UNESCAPED_UNICODE);
         echo $json;
-        exit;
+        return false;
     }
 
     public function showAction() {
         $id = $this->getRequest()->getQuery("id", 0);
-        $query = static::$DB->get(Sorts::tableName(),["id","name","pid"],["id"=>$id]);
+        $query = SortsModel::findById($id);
         if(isset($query)){
             $data['status'] = 1;
             $data['data'] = $query;
@@ -29,7 +28,7 @@ class SortsController extends Base {
         }
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);
         echo $json;
-        exit;
+        return false;
     }
 
     public function addAction() {
@@ -45,16 +44,7 @@ class SortsController extends Base {
 
         $data = [];
         if(empty($errors)){
-            $sth  = static::$DB->pdo->prepare("INSERT INTO ".Sorts::tableName()." SET name=:name, pid=:pid");
-            $sth->bindParam(':pid', $pid, PDO::PARAM_INT);
-            $sth->bindParam(':name', $name, PDO::PARAM_STR);
-            if($sth->execute()){
-                $data['status'] = 1;
-                $data['message'] = '添加成功';
-            }else{
-                $data['status'] = 0;
-                $data['message'] = $sth->errorInfo();
-            }
+            $data = (new SortsModel($name,$pid))->create();
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;
@@ -62,7 +52,7 @@ class SortsController extends Base {
         }
 
         echo json_encode($data,JSON_UNESCAPED_UNICODE);
-        exit;
+        return false;
 
     }
 
@@ -81,7 +71,7 @@ class SortsController extends Base {
             $errors['pid'] = "请选择类别id";
         }
         if(empty($errors)) {
-            $n = static::$DB->get(Sorts::tableName(),"id",["id"=>$id]);
+            $n = SortsModel::getByid($id);
             if (!isset($n)) {
                 $errors['id'] = "id不存在";
             }
@@ -89,17 +79,7 @@ class SortsController extends Base {
 
         $data = [];
         if(empty($errors)){
-            $sth  = static::$DB->pdo->prepare("UPDATE ".Sorts::tableName() ." SET pid=:pid, name=:name WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, PDO::PARAM_INT);
-            $sth->bindParam(':pid', $pid, PDO::PARAM_INT);
-            $sth->bindParam(':name', $name, PDO::PARAM_STR);
-            if($sth->execute()){
-                $data['status'] = 1;
-                $data['message'] = '修改成功';
-            }else{
-                $data['status'] = 0;
-                $data['message'] = $sth->errorInfo();
-            }
+            $data = (new SortsModel($name,$pid))->edit($id);
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;
@@ -107,7 +87,7 @@ class SortsController extends Base {
         }
 
         echo json_encode($data,JSON_UNESCAPED_UNICODE);
-        exit;
+        return false;
 
     }
 
@@ -118,22 +98,14 @@ class SortsController extends Base {
             $errors['id'] = "id是必须的";
         }
         if(empty($errors)) {
-            $n = static::$DB->get("url","id",["id"=>$id]);
+            $n = SortsModel::getById($id);
             if (!isset($n)) {
                 $errors['id'] = "id不存在";
             }
         }
         $data = [];
         if(empty($errors)){
-            $sth  = static::$DB->pdo->prepare("DELETE FROM ".Sorts::tableName()." WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, PDO::PARAM_INT);
-            if($sth->execute()){
-                $data['status'] = 1;
-                $data['message'] = '删除成功';
-            }else{
-                $data['status'] = 0;
-                $data['message'] = $sth->errorInfo();
-            }
+            $data = SortsModel::delete($id);
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;
@@ -141,7 +113,7 @@ class SortsController extends Base {
         }
 
         echo json_encode($data,JSON_UNESCAPED_UNICODE);
-        exit;
+        return false;
 
     }
 

@@ -5,7 +5,7 @@
  * @desc 默认控制器
  * @see http://www.php.net/manual/en/class.yaf-controller-abstract.php
  */
-class IndexController extends Yaf_Controller_Abstract {
+class IndexController extends Base {
 
 	/** 
      * 默认动作
@@ -48,6 +48,33 @@ class IndexController extends Yaf_Controller_Abstract {
 	    exit;
 
 
+
+    }
+
+    public function buildAction() {
+        $path = $this->getRequest()->getPost("path", "");
+        $content = $this->getRequest()->getPost("content", "");
+        $replace = $this->getRequest()->getPost("replace", "");
+        $content = trim($content);
+        if(is_array($replace)){
+            foreach ($replace as $item){
+                foreach ($item as $k => $v){
+                    $content = str_replace($k,$v,$content);
+                }
+            }
+        }
+
+        $suffix = $this->getRequest()->getPost("suffix", ".html");
+        $dir = "/usr/local/nginx/html/lamborghiniJS/LAM2-demos/brandhall/build/";
+        $dir1 = $dir.explode('/',$path)[0];
+
+        if(!is_dir($dir1)){
+            mkdir($dir1);
+        }
+        $filename = "{$dir}{$path}".$suffix;
+
+        file_put_contents($filename,$content);
+        exit;
 
     }
 

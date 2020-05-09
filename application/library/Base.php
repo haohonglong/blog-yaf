@@ -1,10 +1,12 @@
 <?php
 
+use Yaf\Controller_Abstract;
+use Yaf\Registry;
 
-class Base extends Yaf_Controller_Abstract {
+class Base extends Controller_Abstract {
     protected static $DB;
     public function init() {
-        static::$DB = Yaf_Registry::get('db');
+        static::$DB = Registry::get('db');
         $allow_origin = [
             'http://lam2.local',
             'http://localhost:3001',

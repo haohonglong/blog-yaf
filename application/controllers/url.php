@@ -1,13 +1,11 @@
 <?php
 
-use app\models\Sorts;
-use app\models\Url;
 
 class UrlController extends Base {
     
     public function indexAction() {
         $sid = $this->getRequest()->getQuery("sid", 1);
-        $querys = static::$DB->query("SELECT id,name,url FROM ".Url::tableName() ." WHERE sorts_id={$sid}")->fetchAll(PDO::FETCH_ASSOC);
+        $querys = Registry::get('db')->query("SELECT id,name,url FROM ".UrlModel::tableName() ." WHERE sorts_id={$sid}")->fetchAll(\PDO::FETCH_ASSOC);
         $query = [];
         foreach ($querys as $k => $item) {
             $query[$item['id']] = [
@@ -27,7 +25,7 @@ class UrlController extends Base {
 
     public function showAction() {
         $id = $this->getRequest()->getQuery("id", 0);
-        $query = static::$DB->get(Url::tableName(),["id","name","url","sorts_id","info"],["id"=>$id]);
+        $query = Registry::get('db')->get(UrlModel::tableName(),["id","name","url","sorts_id","info"],["id"=>$id]);
         if(isset($query)){
             $data['status'] = 1;
             $data['data'] = $query;
@@ -58,32 +56,25 @@ class UrlController extends Base {
             $errors['sid'] = "请选择类别id";
         }
         if(empty($errors)) {
-            $n = static::$DB->get(Sorts::tableName(),"id",["id"=>$sid]);
+            $n = SortsModel::getByid($sid);
             if (!isset($n)) {
                 $errors['sid'] = "没有此类别id";
             }
         }
         if(empty($errors)) {
-            $n = static::$DB->get(Url::tableName(),"id",["url"=>$url]);
-            if ($n > 0) {
+            if (UrlModel::has_url($url)) {
                 $errors['url'] = "此地址链接已存在";
             }
         }
 
         $data = [];
         if(empty($errors)){
-            $sth  = static::$DB->pdo->prepare("INSERT INTO ".Url::tableName() ." SET sorts_id=:sid, name=:name, url=:url, info=:info");
-            $sth->bindParam(':sid', $sid, PDO::PARAM_INT);
-            $sth->bindParam(':name', $name, PDO::PARAM_STR);
-            $sth->bindParam(':url', $url, PDO::PARAM_STR);
-            $sth->bindParam(':info', $info, PDO::PARAM_STR);
-            if($sth->execute()){
-                $data['status'] = 1;
-                $data['message'] = '添加成功';
-            }else{
-                $data['status'] = 0;
-                $data['message'] = $sth->errorInfo();
-            }
+            $urlModel = new UrlModel();
+            $urlModel->sid = $sid;
+            $urlModel->name = $name;
+            $urlModel->url = $url;
+            $urlModel->info = $info;
+            $data = $urlModel->create();
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;
@@ -118,13 +109,13 @@ class UrlController extends Base {
             $errors['sid'] = "请选择类别id";
         }
         if(empty($errors)) {
-            $n = static::$DB->get(Url::tableName(),"id",["id"=>$id]);
+            $n = UrlModel::getById($id);
             if (!isset($n)) {
                 $errors['id'] = "id不存在";
             }
         }
         if(empty($errors)) {
-            $n = static::$DB->get(Sorts::tableName(),"id",["id"=>$sid]);
+            $n = SortsModel::getById($sid);
             if (!isset($n)) {
                 $errors['sid'] = "没有此类别id";
             }
@@ -132,19 +123,12 @@ class UrlController extends Base {
 
         $data = [];
         if(empty($errors)){
-            $sth  = static::$DB->pdo->prepare("UPDATE ".Url::tableName() ." SET sorts_id=:sid, name=:name, url=:url, info=:info WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, PDO::PARAM_INT);
-            $sth->bindParam(':sid', $sid, PDO::PARAM_INT);
-            $sth->bindParam(':name', $name, PDO::PARAM_STR);
-            $sth->bindParam(':url', $url, PDO::PARAM_STR);
-            $sth->bindParam(':info', $info, PDO::PARAM_STR);
-            if($sth->execute()){
-                $data['status'] = 1;
-                $data['message'] = '修改成功';
-            }else{
-                $data['status'] = 0;
-                $data['message'] = $sth->errorInfo();
-            }
+            $urlModel = new UrlModel();
+            $urlModel->sid = $sid;
+            $urlModel->name = $name;
+            $urlModel->url = $url;
+            $urlModel->info = $info;
+            $data = $urlModel->edit($id);
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;
@@ -163,22 +147,14 @@ class UrlController extends Base {
             $errors['id'] = "id是必须的";
         }
         if(empty($errors)) {
-            $n = static::$DB->get(Url::tableName(),"id",["id"=>$id]);
+            $n = UrlModel::getById($id);
             if (!isset($n)) {
                 $errors['id'] = "id不存在";
             }
         }
         $data = [];
         if(empty($errors)){
-            $sth  = static::$DB->pdo->prepare("DELETE FROM ".Url::tableName() ." WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, PDO::PARAM_INT);
-            if($sth->execute()){
-                $data['status'] = 1;
-                $data['message'] = '删除成功';
-            }else{
-                $data['status'] = 0;
-                $data['message'] = $sth->errorInfo();
-            }
+            $data = UrlModel::delete($id);
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;

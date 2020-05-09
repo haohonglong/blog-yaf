@@ -1,58 +1,89 @@
 <?php
 
+
 class GoodsController extends Base {
 	public function indexAction() {
-        $query = static::$DB->query("
-SELECT b.bill_id as bill_id,b.price as total_price,b.discount,s.name as shop_name,g.id,g.name,g.final_price, g.create_by as create_at FROM bills as b 
-RIGHT JOIN goods as g USING(bill_id)
-LEFT JOIN shop as s ON g.shop_id = s.id
-ORDER by g.create_by DESC 
-")->fetchAll();
-
-        $data = [];
-        foreach ($query as $k => $v) {
-            if(!(isset($v['bill_id']) && !empty($v['bill_id']))){
-                $v['bill_id'] = 0;
-
-            }
-
-            $v['create_at'] = date('Y-m-d',$v['create_at']);
-
-            if(!isset($data[$v['bill_id']])){
-                $data[$v['bill_id']] = [
-                    'bill_id'=>$v['bill_id'],
-                    'shop_name'=>$v['shop_name'],
-                    'total_price'=>$v['total_price'],
-                    'discount'=>$v['discount'],
-                    'create_at'=>$v['create_at'],
-                    'childs'=>[],
-                ];
-            }
-            $data[$v['bill_id']]['childs'][] = [
-                'id'=>$v['id'],
-                'name'=>$v['name'],
-                'shop_name'=>$v['shop_name'],
-                'final_price'=>$v['final_price'],
-                'create_at'=>$v['create_at'],
-            ];
-        }
-//        echo "<pre>";
-//        print_r($data);
-//        echo "</pre>";
-        $data = array_values($data);
+        $data = GoodsModel::listAll();
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);
         echo $json;
-        file_put_contents('/usr/local/nginx/html/lamborghiniJS/LAM2-demos/brandhall/data/goods.json',$json);
-        exit;
+        return false;
+    }
+
+    public function generateIdAction() {
+	    echo BillsModel::generateId();
+	    exit;
     }
 
 
     public function addAction() {
+	    $errors = [];
+        $shop_id = $this->getRequest()->getPost("shop_id", "");
+        $bill_id = $this->getRequest()->getPost("bill_id", "");
+        $discount = $this->getRequest()->getPost("discount", 0);
+        $create_by = $this->getRequest()->getPost("create_by", "");
 
+        $name = $this->getRequest()->getPost("name", "");
+        $number = $this->getRequest()->getPost("number", "");
+        $weight = $this->getRequest()->getPost("weight", "");
+        $single_price = $this->getRequest()->getPost("single_price", "");
+        $final_price = $this->getRequest()->getPost("final_price", "");
+
+        
+
+        if(empty($shop_id)){
+            $errors["shop_id"] = "shop_id 是必须的";
+        }
+        if(!is_numeric($discount)){
+            $errors["discount"] = "discount 是必须的";
+        }
+        if(empty($bill_id)){
+            $errors["bill_id"] = "bill_id 是必须的";
+        }
+        if(empty($create_by)){
+            $errors["create_by"] = "create_by 是必须的";
+        }
+
+
+
+        foreach ($name as $k => $v) {
+            if(empty($name[$k])) {
+                $errors['name'][$k] = "name 是必须的";
+            }
+            if(empty($number[$k])) {
+                $errors['number'][$k] = "number 是必须的";
+            }
+            if(empty($weight[$k])){
+                $errors['weight'][$k] = "weight 是必须的";
+            }
+            if(empty($single_price[$k])){
+                $errors['single_price'][$k] = "single_price 是必须的";
+            }
+            if(empty($final_price[$k])){
+                $errors['final_price'][$k] = "final_price 是必须的";
+            }
+        }
+        $create_by = strtotime($create_by);
+        $update_by = $create_by;
+
+        $data = [];
+        if(empty($errors)){
+
+
+        }else{
+            $data['status'] = 0;
+            $data['errors'] = $errors;
+            $data['message'] = '添加失败';
+        }
+
+        echo json_encode($data,JSON_UNESCAPED_UNICODE);
         exit;
     }
 
-    public function writeAction() {
+    public function editAction() {
 
     }
+    public function deleteAction() {
+
+    }
+
 }
