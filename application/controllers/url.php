@@ -1,5 +1,5 @@
 <?php
-
+use Yaf\Registry;
 
 class UrlController extends Base {
     

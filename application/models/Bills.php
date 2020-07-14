@@ -6,7 +6,7 @@
  * Time: 11:24 AM
  */
 
-
+use Yaf\Registry;
 
 class BillsModel
 {

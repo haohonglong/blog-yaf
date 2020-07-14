@@ -16,10 +16,10 @@ class GoodsModel
             $number       = [],
             $weight       = [],
             $single_price = [];
-    public $bill=null;
+    public $Bill=null;
 
     public function __construct(BillsModel $bill) {
-        $this->bill = $bill;
+        $this->Bill = $bill;
     }
 
     public static function tableName() {
@@ -31,7 +31,7 @@ class GoodsModel
 SELECT b.bill_id as bill_id,b.price as total_price,b.discount,s.name as shop_name,g.id,g.name,g.final_price, g.create_by as create_at FROM ".BillsModel::tableName()." as b 
 RIGHT JOIN ".static::tableName()." as g USING(bill_id)
 LEFT JOIN ".ShopModel::tableName()." as s ON g.shop_id = s.id
-ORDER by g.create_by DESC 
+ORDER by g.id DESC 
 ")->fetchAll();
 
         $data = [];
@@ -86,19 +86,40 @@ ORDER by g.create_by DESC
         }
 
         $n = BillsModel::getByBillId($this->bill_id);
-        $bill = $this->bill;
-        if(!isset($n)){
-            $bill->tatal_price = $total;
-            $data = $bill->create();
+        $bill = $this->Bill;
+        Registry::get('db')->action(function($database) use($total, $datas, $bill, &$data, $n) {
+            if(!isset($n)){
+                $bill->tatal_price = $total;
+                $data = $bill->create();
+                if(0 === $data['status']){
+                    return false;
+                }
 
-        }else{
-            $data = $bill->edit($this->bill_id);
+            }else{
+                $data = $bill->edit($this->bill_id);
+                if(0 === $data['status']){
+                    return false;
+                }
 
-        }
-        if(1 === $data['status']){
-            $last_user_id = Registry::get('db')->insert(static::tableName(), $datas);
+            }
+            if(1 === $data['status']){
+                $last_user_id = $database->insert(static::tableName(), $datas);
+                if($last_user_id) {
+                    $data['status'] = 1;
+                    $data['message'] = '创建成功';
+                }else {
+                    $data['status'] = 0;
+                    $data['message'] = '创建失败';
+                    return false;
+                }
+            }else {
+                $data['status'] = 0;
+                $data['message'] = '创建失败';
+                return false;
+            }
+        });
 
-        }
+
 
         return $data;
     }
@@ -106,8 +127,8 @@ ORDER by g.create_by DESC
     public function edit($id,$data = [
         'shop_id'=>0,
         'bill_id'=>0,
-        'create_by'=>time(),
-        'update_by'=>time(),
+        'create_by'=>'',
+        'update_by'=>'',
         'name'         => 0,
         'number'       => 0,
         'weight'       => '',
