@@ -101,8 +101,13 @@ class SortsController extends Base {
             $n = SortsModel::getById($id);
             if (!isset($n)) {
                 $errors['id'] = "id不存在";
+            } else {
+                if(SortsModel::hasUrl($id)) {
+                    $errors['id'] = "此类别下有数据，不能删除！！！";
+                }
             }
         }
+
         $data = [];
         if(empty($errors)){
             $data = SortsModel::delete($id);

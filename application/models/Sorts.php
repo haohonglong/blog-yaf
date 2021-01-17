@@ -68,6 +68,15 @@ class SortsModel
         return $data;
     }
 
+    public static function hasUrl($sid) {
+        $count = Registry::get('db')->count(UrlModel::tableName(), ['sorts_id' => $sid]);
+        if($count > 0) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName()." WHERE id = :id limit 1");
         $sth->bindParam(':id', $id, \PDO::PARAM_INT);
