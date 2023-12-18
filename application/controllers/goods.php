@@ -9,9 +9,22 @@ class GoodsController extends Base {
         return false;
     }
 
-    public function generateIdAction() {
-	    echo BillsModel::generateId();
-	    exit;
+    public function statisticsAction() {
+        $goodsname_id = $this->getRequest()->getPost("goodsname_id", 0);
+        $start_date = $this->getRequest()->getPost("start_date", null);
+        $end_date = $this->getRequest()->getPost("end_date", null);
+        $G = $this->getRequest()->getPost("G", false);
+        if('true' == $G) {
+            $G = true;
+        } else {
+            $G = false;
+        }
+        
+        
+        $data = GoodsModel::statistics($goodsname_id, strtotime($start_date), strtotime($end_date), $G);
+        $json = json_encode($data,JSON_UNESCAPED_UNICODE);
+        echo $json;
+        return false;
     }
 
 
@@ -19,70 +32,93 @@ class GoodsController extends Base {
 	    $errors = [];
         $shop_id = $this->getRequest()->getPost("shop_id", "");
         $bill_id = $this->getRequest()->getPost("bill_id", "");
+        $points = $this->getRequest()->getPost("points", 0);
         $discount = $this->getRequest()->getPost("discount", 0);
-        $create_by = $this->getRequest()->getPost("create_by", "");
+        $create_at = $this->getRequest()->getPost("create_at", "");
 
-        $name = $this->getRequest()->getPost("name", "");
-        $number = $this->getRequest()->getPost("number", "");
-        $weight = $this->getRequest()->getPost("weight", "");
-        $single_price = $this->getRequest()->getPost("single_price", "");
-        $final_price = $this->getRequest()->getPost("final_price", "");
+        $goodsname_ids = $this->getRequest()->getPost("goodsname_ids", null);
+        $codes = $this->getRequest()->getPost("codes", null);
+        $unit_ids = $this->getRequest()->getPost("unit_ids", null);
+        $numbers = $this->getRequest()->getPost("numbers", null);
+        $weights = $this->getRequest()->getPost("weights", null);
+        $single_prices = $this->getRequest()->getPost("single_prices", null);
+        $final_prices = $this->getRequest()->getPost("final_prices", null);
+        
 
+        if(!isset($goodsname_ids)) {
+            $errors["goodsname_id"] = "商品名必选的";
+        }
+
+        if(!is_array($goodsname_ids)) {
+            $errors["goodsname_id"] = "goodsname_ids 必须是一个数组";
+        }
+        if(!isset($unit_ids)) {
+            $errors["unit_id"] = "计量单位是必须的";
+        }
+
+        if(!isset($numbers)) {
+            $errors["number"] = "numbers 参数是必须的";
+        }
+
+        if(!isset($weights)) {
+            $errors["weight"] = "weights 参数是必须的";
+        }
+
+        if(!isset($single_prices)) {
+            $errors["single_prices"] = "single_prices 参数是必须的";
+        }
+
+        if(!isset($final_prices)) {
+            $errors["final_prices"] = "final_prices 参数是必须的";
+        }
         
 
         if(empty($shop_id)){
-            $errors["shop_id"] = "shop_id 是必须的";
+            $errors["shop_id"] = "是必须的";
         }
         if(!is_numeric($discount)){
-            $errors["discount"] = "discount 是必须的";
+            $discount = 0;
         }
         if(empty($bill_id)){
-            $errors["bill_id"] = "bill_id 是必须的";
+            $errors["bill_id"] = "是必须的";
         }
-        if(empty($create_by)){
-            $errors["create_by"] = "create_by 是必须的";
+        if(empty($create_at)){
+            $errors["create_at"] = "是必须的";
         }
 
-
-
-        foreach ($name as $k => $v) {
-            if(empty($name[$k])) {
-                $errors['name'][$k] = "name 是必须的";
+        if(empty($errors)){
+            foreach ($goodsname_ids as $k => $v) {
+                if(empty($goodsname_ids[$k])) {
+                    $errors['goodsname_id'][$k] = "是必须的";
+                }
+                if(empty($numbers[$k])) {
+                    $errors['number'][$k] = "是必须的";
+                }
+                if(empty($weights[$k])){
+                    $errors['weight'][$k] = "是必须的";
+                }
+                if(empty($unit_ids[$k])) {
+                    $errors['unit_id'][$k] = "是必须的";
+                }
+                if(empty($single_prices[$k]) || !(floatval($single_prices[$k]) > 0)){
+                    $errors['single_price'][$k] = "请填写金额，且不能为0";
+                }
+                if(!(floatval($final_prices[$k]) > 0)){
+                    $errors['final_price'][$k] = "不能为零";
+                }
             }
-            if(empty($number[$k])) {
-                $errors['number'][$k] = "number 是必须的";
-            }
-            if(empty($weight[$k])){
-                $errors['weight'][$k] = "weight 是必须的";
-            }
-            if(empty($single_price[$k])){
-                $errors['single_price'][$k] = "single_price 是必须的";
-            }
-            if(empty($final_price[$k])){
-                $errors['final_price'][$k] = "final_price 是必须的";
-            }
+            $create_at = strtotime($create_at);
         }
-        $create_by = strtotime($create_by);
-
+        
         $data = [];
         if(empty($errors)){
-            $bill = new BillsModel();
-            $bill->bill_id = $bill_id;
-            $bill->shop_id = $shop_id;
-            $bill->discount = $discount;
-            $bill->create_at = $create_by;
-            $bill->update_at = $create_by;
-
-            $goods = new GoodsModel($bill);
-            $goods->shop_id = $shop_id;
-            $goods->bill_id = $bill_id;
-            $goods->create_by = $create_by;
-            $goods->update_by = $create_by;
-            $goods->name = $name;
-            $goods->number = $number;
-            $goods->weight = $weight;
-            $goods->single_price = $single_price;
-
+            $bill = new BillsModel($bill_id, $points, $discount, $create_at);
+            $goods = new GoodsModel(
+                                    $bill,
+                                    $shop_id, $bill_id,
+                                    $codes, $goodsname_ids, $numbers, $weights,
+                                    $unit_ids, $single_prices, $final_prices, $create_at
+                                );
             $data = $goods->create();
 
         }else{

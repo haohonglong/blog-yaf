@@ -5,17 +5,40 @@ class UrlController extends Base {
     
     public function indexAction() {
         $sid = $this->getRequest()->getQuery("sid", 1);
-        $querys = Registry::get('db')->query("SELECT id,name,url FROM ".UrlModel::tableName() ." WHERE sorts_id={$sid}")->fetchAll(\PDO::FETCH_ASSOC);
+        $querys = Registry::get('db')->query("SELECT id, name, url, info FROM ".UrlModel::tableName() ." WHERE sorts_id={$sid} ORDER BY id DESC")->fetchAll(\PDO::FETCH_ASSOC);
         $query = [];
         foreach ($querys as $k => $item) {
             $query[$item['id']] = [
                 'id'=>$item['id'],
                 'name'=>$item['name'],
                 'url'=>$item['url'],
+                'info'=>$item['info'],
             ];
         }
         $data = [
-            "data"=>$query,
+            "data"=>array_values($query),
+            "status"=>1,
+        ];
+        $json = json_encode($data,JSON_UNESCAPED_UNICODE);
+        echo $json;
+        exit;
+    }
+
+    public function searchAction() {
+        $sid = $this->getRequest()->getQuery("sid", 0);
+        $name = $this->getRequest()->getQuery("name", "");
+        $querys = Registry::get('db')->query("SELECT id, name, url, info FROM ".UrlModel::tableName() ." WHERE sorts_id={$sid} AND name LIKE '%{$name}%'")->fetchAll(\PDO::FETCH_ASSOC);
+        $query = [];
+        foreach ($querys as $k => $item) {
+            $query[$item['id']] = [
+                'id'=>$item['id'],
+                'name'=>$item['name'],
+                'url'=>$item['url'],
+                'info'=>$item['info'],
+            ];
+        }
+        $data = [
+            "data"=>array_values($query),
             "status"=>1,
         ];
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);
@@ -43,6 +66,7 @@ class UrlController extends Base {
         $url  = $this->getRequest()->getPost("url", "");
         $info = $this->getRequest()->getPost("info", "");
         $sid  = $this->getRequest()->getPost("sid", "");
+        
         if(empty($name)){
             $errors['name'] = "请填写名称";
         }
@@ -88,7 +112,7 @@ class UrlController extends Base {
 
     public function editAction() {
         $errors = [];
-        $id   = $this->getRequest()->getQuery("id", "");
+        $id   = $this->getRequest()->getPost("id", "");
         $name = $this->getRequest()->getPost("name", "");
         $url  = $this->getRequest()->getPost("url", "");
         $info = $this->getRequest()->getPost("info", "");

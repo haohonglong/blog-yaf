@@ -2,47 +2,47 @@
 
 use Yaf\Registry;
 
-class ShopModel
+class VideoModel
 {
 
-    private $name;
+    private $title, $source, $date;
 
-    public function __construct($name)
+    public function __construct($title, $source)
     {
-        $this->name = $name;
+        $this->title = $title;
+        $this->source = $source;
     }
 
     public static function tableName()
     {
-        return 'shop';
+        return 'video';
     }
 
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
-     * 名称： getByName
+     * 创建日期：2022-12-06
+     * 修改日期：2022-12-06
+     * 名称： getByTitle
      * 功能：
      * 说明：
      * 注意：
-     * @param $name
+     * @param $title
      * @return mixed
      */
-    public static function getByName($name) {
-        return Registry::get('db')->get(static::tableName(),"*",["name"=>$name]);
+    public static function getByTitle($title) {
+        return Registry::get('db')->get(static::tableName(),"id",["title"=>$title]);
     }
 
     public static function getById($id) {
-        return Registry::get('db')->get(static::tableName(),"*",["id"=>$id]);
+        return Registry::get('db')->get(static::tableName(),"id",["id"=>$id]);
     }
-
 
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2022-12-06
+     * 修改日期：2022-12-06
      * 名称： listAll
      * 功能：
      * 说明：
@@ -50,14 +50,14 @@ class ShopModel
      * @return mixed
      */
     public static function listAll() {
-        $query = Registry::get('db')->query("SELECT id,name FROM ".static::tableName())->fetchAll(\PDO::FETCH_ASSOC);
+        $query = Registry::get('db')->query("SELECT id, title, source FROM ".static::tableName(). " ORDER BY id DESC")->fetchAll(\PDO::FETCH_ASSOC);
         return $query;
     }
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2022-12-06
+     * 修改日期：2022-12-06
      * 名称： create
      * 功能：
      * 说明：
@@ -65,8 +65,9 @@ class ShopModel
      * @return mixed
      */
     public function create() {
-        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET name=:name");
-        $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
+        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET title=:title, source=:source");
+        $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
+        $sth->bindParam(':source', $this->source, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
@@ -79,8 +80,8 @@ class ShopModel
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2022-12-06
+     * 修改日期：2022-12-06
      * 名称： edit
      * 功能：
      * 说明：
@@ -89,9 +90,10 @@ class ShopModel
      * @return mixed
      */
     public function edit($id) {
-        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET name=:name WHERE id = :id limit 1");
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET title=:title, source=:source WHERE id = :id limit 1");
         $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-        $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
+        $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
+        $sth->bindParam(':source', $this->source, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '修改成功';

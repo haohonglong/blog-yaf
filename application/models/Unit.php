@@ -2,7 +2,7 @@
 
 use Yaf\Registry;
 
-class ShopModel
+class UnitModel
 {
 
     private $name;
@@ -14,14 +14,14 @@ class ShopModel
 
     public static function tableName()
     {
-        return 'shop';
+        return 'unit';
     }
 
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2023-12-01
+     * 修改日期：2023-12-01
      * 名称： getByName
      * 功能：
      * 说明：
@@ -30,19 +30,18 @@ class ShopModel
      * @return mixed
      */
     public static function getByName($name) {
-        return Registry::get('db')->get(static::tableName(),"*",["name"=>$name]);
+        return Registry::get('db')->get(static::tableName(),"unit_name",["unit_name"=>$name]);
     }
 
     public static function getById($id) {
-        return Registry::get('db')->get(static::tableName(),"*",["id"=>$id]);
+        return Registry::get('db')->get(static::tableName(),"unit_id",["unit_id"=>$id]);
     }
-
 
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2023-12-01
+     * 修改日期：2023-12-01
      * 名称： listAll
      * 功能：
      * 说明：
@@ -50,14 +49,14 @@ class ShopModel
      * @return mixed
      */
     public static function listAll() {
-        $query = Registry::get('db')->query("SELECT id,name FROM ".static::tableName())->fetchAll(\PDO::FETCH_ASSOC);
+        $query = Registry::get('db')->query("SELECT unit_id, unit_name FROM ".static::tableName())->fetchAll(\PDO::FETCH_ASSOC);
         return $query;
     }
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2023-12-01
+     * 修改日期：2023-12-01
      * 名称： create
      * 功能：
      * 说明：
@@ -65,7 +64,7 @@ class ShopModel
      * @return mixed
      */
     public function create() {
-        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET name=:name");
+        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET unit_name=:name");
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
@@ -79,8 +78,8 @@ class ShopModel
 
     /**
      * @author: lhh
-     * 创建日期：2020-05-08
-     * 修改日期：2020-05-08
+     * 创建日期：2023-12-01
+     * 修改日期：2023-12-01
      * 名称： edit
      * 功能：
      * 说明：
@@ -89,7 +88,7 @@ class ShopModel
      * @return mixed
      */
     public function edit($id) {
-        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET name=:name WHERE id = :id limit 1");
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET unit_name=:name WHERE unit_id = :id limit 1");
         $sth->bindParam(':id', $id, \PDO::PARAM_INT);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
         if($sth->execute()){
@@ -103,7 +102,7 @@ class ShopModel
     }
 
     public static function delete($id) {
-        $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName()." WHERE id = :id limit 1");
+        $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName()." WHERE unit_id = :id limit 1");
         $sth->bindParam(':id', $id, \PDO::PARAM_INT);
         if($sth->execute()){
             $data['status'] = 1;

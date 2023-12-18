@@ -65,13 +65,14 @@ class IndexController extends Base {
         }
 
         $suffix = $this->getRequest()->getPost("suffix", ".html");
-        $dir = "/usr/local/nginx/html/lamborghiniJS/LAM2-demos/brandhall/build/";
-        $dir1 = $dir.explode('/',$path)[0];
-
-        if(!is_dir($dir1)){
-            mkdir($dir1);
+        foreach(explode('/', $path) as $item) {
+            if(!is_dir($item)){
+                // mkdir($item);
+            }
         }
-        $filename = "{$dir}{$path}".$suffix;
+
+        
+        $filename = $path . $suffix;
 
         file_put_contents($filename,$content);
         exit;

@@ -3,9 +3,27 @@
 
 class SortsController extends Base {
 
+    private function getTree($list,$pk='id', $pid='pid', $child='child', $root=0) {
+        $tree=[];
+        foreach($list as $key=> $val){
+          if($val[$pid]==$root){
+            //获取当前$pid所有子类
+              unset($list[$key]);
+              if(! empty($list)){
+                $child=$this->getTree($list,$pk,$pid,$child,$val[$pk]);
+                if(!empty($child)){
+                  $val['child']=$child;
+                }
+              }
+              $tree[]=$val;
+          }
+        }
+        return $tree;
+    }
+
     public function indexAction() {
-        $query = SortsModel::showListOfOneLevel();
-        $json = json_encode($query,JSON_UNESCAPED_UNICODE);
+        $query = SortsModel::showListOfAllLevels();
+        $json = json_encode($this->getTree($query),JSON_UNESCAPED_UNICODE);
         echo $json;
         return false;
     }
@@ -42,6 +60,12 @@ class SortsController extends Base {
             $pid = 0;
         }
 
+        if(empty($errors)) {
+            if (SortsModel::has_name($name, $pid)) {
+                $errors['name'] = "类别名称已存在";
+            }
+        }
+
         $data = [];
         if(empty($errors)){
             $data = (new SortsModel($name,$pid))->create();
@@ -58,23 +82,29 @@ class SortsController extends Base {
 
     public function editAction() {
         $errors = [];
-        $id   = $this->getRequest()->getQuery("id", "");
+        $id   = $this->getRequest()->getPost("id", "");
         $name = $this->getRequest()->getPost("name", "");
-        $pid  = $this->getRequest()->getPost("pid", "");
+        $pid  = $this->getRequest()->getPost("pid", 0);
         if(empty($id)){
             $errors['id'] = "id cannot be empty";
         }
         if(empty($name)){
             $errors['name'] = "请填写名称";
         }
-        if(empty($pid)){
-            $errors['pid'] = "请选择类别id";
-        }
         if(empty($errors)) {
             $n = SortsModel::getByid($id);
             if (!isset($n)) {
                 $errors['id'] = "id不存在";
             }
+        }
+        if(empty($errors)) {
+            if (SortsModel::has_name($name, $pid)) {
+                $errors['name'] = "类别名称已存在";
+            }
+        }
+        
+        if($id == $pid) {
+            $errors['name'] = "当前的类名称不能选择自己为父类";
         }
 
         $data = [];
