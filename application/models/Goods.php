@@ -259,6 +259,7 @@ class GoodsModel
         foreach($query as $k => $v) {
             $name = $v['name'];
             $shop_id = $v['shop_id'];
+            $price = $v["price"];
             if(!isset($data[$shop_id])) {
                 $data[$shop_id]= [
                     "name" => $name,
@@ -267,11 +268,9 @@ class GoodsModel
                 ];
 
             }
-
+            
             if($G) {
-                $price = $v["price"] / 2;
-            } else {
-                $price = $v["price"];
+                $price /= 2;
             }
 
             $data[$shop_id]["prices"][] = (float)(number_format($price , 2));
