@@ -86,8 +86,10 @@ class UrlController extends Base {
             }
         }
         if(empty($errors)) {
-            if (UrlModel::has_url($url)) {
-                $errors['url'] = "此地址链接已存在";
+            $arr = UrlModel::getByUrl($url);
+            if (isset($arr) && is_array($arr)) {
+                $name = SortsModel::findById($arr["sorts_id"])["name"];
+                $errors['url'] = "此地址链接已存在\"{$name}\"里";
             }
         }
 

@@ -11,11 +11,14 @@ use Yaf\Registry;
 
 class SortsModel
 {
-    public $name,$pid;
-    public function __construct($name,$pid=0)
+    public $name,$pid, $code=null;
+    public function __construct($name,$pid=0, $code=null)
     {
         $this->name = $name;
         $this->pid = $pid;
+
+        if(isset($code) && empty($code)) $code = null;
+        $this->code = $code;
     }
 
     public static function tableName()
@@ -52,7 +55,7 @@ class SortsModel
     }
 
     public static function showListOfAllLevels() {
-        $arr = Registry::get('db')->query("SELECT id,name,pid FROM ".static::tableName())->fetchAll(\PDO::FETCH_ASSOC);
+        $arr = Registry::get('db')->query("SELECT id,name,pid,code FROM ".static::tableName())->fetchAll(\PDO::FETCH_ASSOC);
 
         return $arr;
     }
@@ -64,10 +67,22 @@ class SortsModel
         return false;
     }
 
+    public static function has_code($code) {
+        if(isset($code) && !empty($code)){
+            $n = Registry::get('db')->get(static::tableName(),"code",["code"=>$code]);
+            if ($n > 0) {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+
     public function create() {
-        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName()." SET name=:name, pid=:pid");
+        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName()." SET name=:name, pid=:pid, code=:code");
         $sth->bindParam(':pid', $this->pid, \PDO::PARAM_INT);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
+        $sth->bindParam(':code', $this->code, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
@@ -84,10 +99,11 @@ class SortsModel
             $sth->bindParam(':id', $id, \PDO::PARAM_INT);
             $sth->bindParam(':pid', $this->pid, \PDO::PARAM_INT);
         } else { 
-            $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET pid=:pid, name=:name WHERE id = :id limit 1");
+            $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET pid=:pid, name=:name, code=:code WHERE id = :id limit 1");
             $sth->bindParam(':id', $id, \PDO::PARAM_INT);
             $sth->bindParam(':pid', $this->pid, \PDO::PARAM_INT);
             $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
+            $sth->bindParam(':code', $this->code, \PDO::PARAM_STR);
             
         }
         

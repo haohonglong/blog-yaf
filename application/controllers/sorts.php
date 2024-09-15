@@ -1,5 +1,5 @@
 <?php
-
+use Yaf\Registry;
 
 class SortsController extends Base {
 
@@ -53,6 +53,7 @@ class SortsController extends Base {
         $errors = [];
         $name = $this->getRequest()->getPost("name", "");
         $pid = $this->getRequest()->getPost("pid", 0);
+        $code  = $this->getRequest()->getPost("code", null);
         if(empty($name)){
             $errors['name'] = "请填写名称";
         }
@@ -66,9 +67,15 @@ class SortsController extends Base {
             }
         }
 
+        if(empty($errors)) {
+            if (isset($code) && !empty($code) && SortsModel::has_code($code)) {
+                $errors['code'] = "code 这个编号已存在了";
+            }
+        }
+
         $data = [];
         if(empty($errors)){
-            $data = (new SortsModel($name,$pid))->create();
+            $data = (new SortsModel($name,$pid, $code))->create();
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;
@@ -85,6 +92,7 @@ class SortsController extends Base {
         $id   = $this->getRequest()->getPost("id", "");
         $name = $this->getRequest()->getPost("name", "");
         $pid  = $this->getRequest()->getPost("pid", 0);
+        $code  = $this->getRequest()->getPost("code", null);
         if(empty($id)){
             $errors['id'] = "id cannot be empty";
         }
@@ -98,8 +106,17 @@ class SortsController extends Base {
             }
         }
         if(empty($errors)) {
-            if (SortsModel::has_name($name, $pid)) {
-                $errors['name'] = "类别名称已存在";
+            if(!(Registry::get('db')->get(SortsModel::tableName(),"id",["name"=>$name, "id"=>$id]) > 0)){ // 如果与修改之前的名称不同，就检查看与别的类别名是否同名
+                if (SortsModel::has_name($name, $pid)) {
+                    $errors['name'] = "类别名称已存在了";
+                }
+
+            }
+        }
+
+        if(empty($errors)) {
+            if (isset($code) && !empty($code) && SortsModel::has_code($code)) {
+                $errors['code'] = "code 这个编号已存在";
             }
         }
         
@@ -109,7 +126,7 @@ class SortsController extends Base {
 
         $data = [];
         if(empty($errors)){
-            $data = (new SortsModel($name,$pid))->edit($id);
+            $data = (new SortsModel($name,$pid, $code))->edit($id);
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;

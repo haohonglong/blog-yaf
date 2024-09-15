@@ -22,6 +22,10 @@ class UrlModel
         return false;
     }
 
+    public static function getByUrl($url) {
+        return Registry::get('db')->get(static::tableName(),["id","sorts_id"],["url"=>$url]);
+    }
+
 
     public function create() {
         $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET sorts_id=:sid, name=:name, url=:url, info=:info");

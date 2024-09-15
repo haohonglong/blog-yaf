@@ -53,28 +53,35 @@ class IndexController extends Base {
 
     public function buildAction() {
         $path = $this->getRequest()->getPost("path", "");
+        $filename = $this->getRequest()->getPost("filename", "");
         $content = $this->getRequest()->getPost("content", "");
-        $replace = $this->getRequest()->getPost("replace", "");
+        $ftp_server = $this->getRequest()->getPost("ftp_server", "");
+        $path = $ftp_server.$path;
         $content = trim($content);
-        if(is_array($replace)){
-            foreach ($replace as $item){
-                foreach ($item as $k => $v){
-                    $content = str_replace($k,$v,$content);
-                }
-            }
+
+        if(!is_dir($path)){
+            mkdir($path);
         }
 
-        $suffix = $this->getRequest()->getPost("suffix", ".html");
-        foreach(explode('/', $path) as $item) {
-            if(!is_dir($item)){
-                // mkdir($item);
-            }
-        }
+        $conn_id = ftp_connect($ftp_server) or die("Couldn't connect to $ftp_server");
 
+        // 创建或打开文件
+        $file = fopen($path.'/'.$filename, 'w');
         
-        $filename = $path . $suffix;
+        if ($file) {
+            // 写入内容到文件
+            fwrite($file, $content);
+        
+            // 关闭文件资源
+            fclose($file);
+        
+            echo "文件创建成功";
+        } else {
+            echo "无法创建文件";
+        }
+        exit;
 
-        file_put_contents($filename,$content);
+        file_put_contents($path.'/'.$filename,$content);
         exit;
 
     }

@@ -49,7 +49,11 @@ class GoodsModel
                                                     gn.goodsname as name,
                                                     g.goodsname_id as goodsname_id,
                                                     g.code,
+                                                    g.number,
+                                                    g.weight,
                                                     g.final_price,
+                                                    g.single_price,
+                                                    u.unit_name as unit,
                                                     g.create_at as create_at, 
                                                     g.shop_id as shop_id,
                                                     s.name as shop_name,
@@ -61,6 +65,7 @@ class GoodsModel
                                                 INNER JOIN ". BillsModel::tableName()." as b USING(bill_id)
                                                 INNER JOIN ". GoodsnameModel::tableName(). " as gn USING(goodsname_id)
                                                 INNER JOIN ".ShopModel::tableName()." as s ON s.id = g.shop_id
+                                                INNER JOIN ".UnitModel::tableName()." as u ON u.unit_id = g.unit_id
                                                 ORDER by g.id DESC 
                                                 ")->fetchAll();
 
@@ -70,7 +75,7 @@ class GoodsModel
                 $data[$v['shop_id']] = [
                     'shop_id' => $v['shop_id'],
                     'shop_name'=>$v['shop_name'],
-                    'childs' => [],
+                    'bills' => [],
                 ];
             }
 
@@ -83,8 +88,8 @@ class GoodsModel
             $v['create_at'] = date('Y-m-d',$v['create_at']);
 
 
-            if(!isset($data[$v['shop_id']]['childs'][$v['bill_id']])){
-                $data[$v['shop_id']]['childs'][$v['bill_id']] = [
+            if(!isset($data[$v['shop_id']]['bills'][$v['bill_id']])){
+                $data[$v['shop_id']]['bills'][$v['bill_id']] = [
                     'bill_id'=>$v['bill_id'],
                     'points'=>$v['points'],
                     'discount'=>$v['discount'],
@@ -92,11 +97,15 @@ class GoodsModel
                     'childs'=>[],
                 ];
             }
-            $data[$v['shop_id']]['childs'][$v['bill_id']]['childs'][] = [
+            $data[$v['shop_id']]['bills'][$v['bill_id']]['childs'][] = [
                 'id'=>$v['id'],
                 'name'=>$v['name'],
                 'code'=>$v['code'],
+                'single_price'=>$v['single_price'],
                 'final_price'=>$v['final_price'],
+                'weight'=>$v['weight'],
+                'number'=>$v['number'],
+                'unit'=>$v['unit'],
                 'create_at'=>$v['create_at'],
             ];
         }
