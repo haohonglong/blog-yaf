@@ -172,7 +172,7 @@ class StockDetailModel
         
         if(static::hasBothStockIdAndDate($stock_id, $this->created_at)){
             $data['status'] = 3;
-            $data['message'] = "股票号". $stock_id ." 时间：". $this->created_at ." 同一时间不能再次写入同一个股票数据";
+            $data['message'] = $stock_id ."-". $result['stock_name'] ." ". $this->created_at ." 同一时间不能再次写入同一个股票数据";
             return $data;
         }
         

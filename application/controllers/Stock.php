@@ -31,7 +31,7 @@ class StockController extends Base {
 					break;
 				
 				default:
-					$result['status'] = 1;
+					$result['status'] = 2;
 					$result['message'] = 'url地址错误';
 					break;
 			}
@@ -127,7 +127,6 @@ class StockController extends Base {
 
 		curl_setopt_array($curl, [
 			CURLOPT_URL => 'https://finance.pae.baidu.com/vapi/v1/getquotation?all=1&srcid=5353&pointType=string&group=quotation_minute_ab&market_type=ab&new_Format=1&finClientType=pc&query='.$stock_id.'&code='.$stock_id,
-			// CURLOPT_URL => 'https://finance.pae.baidu.com/api/getbanner?marketType=ab&code=000875&financeType=stock&finClientType=pc',
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING => '',
 			CURLOPT_MAXREDIRS => 10,
@@ -138,11 +137,11 @@ class StockController extends Base {
 		]);
 		$data = curl_exec($curl);
 		curl_close($curl);
-		var_dump($data);exit;
 		$data = json_decode($data, true, 512);
+		
 		if(!isset($data)){
-			$result['status'] = 1;
-			$result['message'] = 'url地址错误';
+			$result['status'] = 2;
+			$result['message'] = 'url地址错误或者是休市日';
 		} else {
 			try {
 				$date = $data['Result']['update']['text'];
@@ -163,6 +162,7 @@ class StockController extends Base {
 					'change'    => $data[6]['originValue'],
 					'amplitude' => $data[19]['originValue'],
 				];
+				// print_r($data);exit;
 
 				$stock_type = 0;
 				$stock_price = $data['stock_price'];
@@ -243,7 +243,7 @@ class StockController extends Base {
 			foreach ($list as $key => $item) {
 				$data = $this->feach2($item);
 				$datas['datas'][] = $data;
-				if($data['status'] > 0){
+				if(2 == $data['status']){
 					break;
 				}
 				$total = $key+1;
