@@ -209,6 +209,7 @@ class StockDetailModel
                 }
     
                 if(!StockModel::setStockNumber($stock_id, $number)){ // 
+                    $database->pdo->rollBack();
                     $data['status'] = 0;
                     $data['message'] = "stock表更新stock_number时失败";
                     return $data;
