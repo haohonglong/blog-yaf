@@ -1,6 +1,7 @@
 {
     "require": {
-        "catfan/medoo": "^1.7"
+        "catfan/medoo": "^1.7",
+        "hhxsv5/php-sse":"~2.0"
     },
     "autoload": {
         "psr-4": {"app\\": "application/"}

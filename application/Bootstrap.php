@@ -61,5 +61,26 @@ class Bootstrap extends Bootstrap_Abstract {
             'charset' => $db->params->charset
         ];
         Registry::set('db', new \Medoo\Medoo($option));
+
+        
+    }
+
+    public function _initRedis() {
+        $config = new Ini(APPLICATION_PATH . "/conf/application.ini", 'redis');
+        $db = $config->get("redis");
+        $option = [
+            'host' => $db->host,
+            'port' => $db->port,
+            'password' => $db->password,
+            'database' => $db->database,
+        ];
+
+        $redis = new Redis();
+        $redis->connect($option['host'], $option['port']);
+        $redis->auth($option['password']);
+
+        Registry::set('redis', $redis);
+
+        
     }
 }
