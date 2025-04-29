@@ -1,7 +1,8 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class UrlController extends Base {
+class UrlController extends ControllerBase {
     
     public function indexAction() {
         $sid = $this->getRequest()->getQuery("sid", 1);

@@ -1,6 +1,7 @@
 <?php
+use base\controller\ControllerBase;
 
-class Video2Controller extends Base {
+class Video2Controller extends ControllerBase {
 	public function indexAction() {
         $data = [
             "data"=>Video2Model::listAll(),

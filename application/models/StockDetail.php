@@ -1,60 +1,21 @@
 <?php
 
 use Yaf\Registry;
+use base\model\StockModelBase;
 
-class StockDetailModel
+class StockDetailModel extends StockModelBase
 {
 
-    private $stock_id
-            ,$stock_price
-            ,$stock_type
-            ,$stock_deal_total
-            ,$created_at
-            ,$stock_detail_remark=""
-            
-            ,$open
-            ,$close
-            ,$lup
-            ,$ldown
-			,$hight
-			,$low
-			,$average
-			,$change
-			,$amplitude;
+    private  $stock_type, $stock_deal_total, $created_at, $stock_detail_remark="";
 
-    public function __construct($stock_id
-    ,$stock_price
-    ,$stock_type
-    ,$stock_deal_total
-    ,$created_at
-    ,$stock_detail_remark="",
-    
-    $open=0.00,
-    $close=0.00,
-    $lup=0.00,
-    $ldown=0.00,
-    $hight=0.00, 
-    $low=0.00, 
-    $average=0.00,
-    $amplitude=0.00,
-    $change=0.00)
+    public function __construct($stock_id, $data = [])
     {
-        $this->stock_id = $stock_id;
-        $this->stock_type = $stock_type;
-        $this->stock_price = $stock_price;
-        $this->stock_deal_total = $stock_deal_total;
-        $this->created_at = $created_at;
-        $this->stock_detail_remark = $stock_detail_remark;
+        parent::__construct($stock_id, $data);
+        $this->stock_type = $data['stock_type'];
+        $this->stock_deal_total = $data['stock_deal_total'];
+        $this->created_at = $data['created_at'];
+        $this->stock_detail_remark = $data['stock_detail_remark'] ?? "";
 
-        $this->open = $open;
-        $this->close = $close;
-        $this->lup = $lup;
-        $this->ldown = $ldown;
-        $this->hight = $hight;
-        $this->low = $low;
-        $this->average = $average;
-        $this->change = $change;
-        $this->amplitude = $amplitude;
     }
 
     public static function tableName()
@@ -72,6 +33,30 @@ class StockDetailModel
         return Registry::get('db')->has(static::tableName(),["stock_id"=>$stock_id, 'created_at'=> $created_at]);
     }
 
+    /**
+     * @author: lhh
+     * 创建日期：2024-12-11
+     * 修改日期：2024-12-11
+     * 名称： setGone
+     * 功能：清仓
+     * 说明：
+     * 注意：
+     * @param $id
+     * @return mixed
+     */
+    public static function setGone($stock_id, $date) {
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET gone=:gone WHERE stock_id = :stock_id AND stock_date_at < :date");
+        $sth->bindParam(':stock_id', $stock_id, \PDO::PARAM_STR);
+        $sth->bindParam(':date', $date, \PDO::PARAM_STR);
+        $sth->bindParam(':gone', 1, \PDO::PARAM_INT);
+        if($sth->execute()){
+            return true;
+        }
+
+        return false;
+        
+    }
+
     
 
 
@@ -85,7 +70,9 @@ class StockDetailModel
      * 注意：
      * @return mixed
      */
-    public static function getList($stock_id=null) {
+    public static function getList($stock_id=null, $size=1) {
+        // $rows = 300;
+        // $size = ($size-1) * $rows;
 
         if(isset($stock_id)){
             $query = Registry::get('db')->query("SELECT 
@@ -101,16 +88,20 @@ class StockDetailModel
             a.close,
             a.lup,
             a.ldown,
-            a.hight,
-            a.low,
+            a.highest,
+            a.lowest,
             a.average,
             a.change,
             a.amplitude,
+            a.volume,
+            a.amount,
             a.stock_detail_remark
             
         FROM ".static::tableName()." as a 
         WHERE a.stock_id = '{$stock_id}'
-        ORDER by a.id DESC ")->fetchAll();
+        ORDER by a.id DESC 
+        ")->fetchAll();
+        // LIMIT {$size}, {$rows}
 
         } else {
             // $query = Registry::get('db')->query("
@@ -128,8 +119,8 @@ class StockDetailModel
             //                                             sd.close,
             //                                             sd.lup,
             //                                             sd.ldown,
-            //                                             sd.hight,
-            //                                             sd.low,
+            //                                             sd.highest,
+            //                                             sd.lowest,
             //                                             sd.average,
             //                                             sd.change,
             //                                             sd.amplitude,
@@ -142,7 +133,7 @@ class StockDetailModel
             //                                         ")->fetchAll();
 
         }
-
+        
 
         return $query;
     }
@@ -150,10 +141,10 @@ class StockDetailModel
     /**
      * @author: lhh
      * 创建日期：2024-5-06
-     * 修改日期：2024-5-08
+     * 修改日期：2024-12-26
      * 名称： create
      * 功能：
-     * 说明：stock_detail 成功添加一条后，然后在操作stock和 stock_date表
+     * 说明：stock_detail 成功添加一条后，然后在操作stock和stock_date表。 只有买入和卖出时才操作stock_history表
      * 注意：
      * @return mixed
      */
@@ -184,28 +175,26 @@ class StockDetailModel
             $database->pdo->beginTransaction();
 
             if($type > 0){
-                switch($type){
-                    case 1:
-                        $number += $stock_deal_total; 
-                        $sthStockModel  = $database->pdo->prepare("UPDATE ".StockModel::tableName() ." SET 
-                        `bought`=:bought 
-                        WHERE `stock_id`=:stock_id");
-                        $sthStockModel->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
-                        $sthStockModel->bindParam(':bought', $this->stock_price, \PDO::PARAM_INT);
-                        $sthStockModel->execute();
-                        break;
-                    case 2:// 卖出时检查剩余股票数量是否够卖
-                        $number -= $stock_deal_total;
-                        if($number < 0){
-                            $data['status'] = 0;
-                            $data['message'] = "剩股票数量不够";
-                            return $data;
-                        }
-                        break;
-    
-                    default:
-                        return false;
-    
+                if(1 == $type){// 买入时
+                    $number += $stock_deal_total; 
+                    $sthStockModel  = $database->pdo->prepare("UPDATE ".StockModel::tableName() ." SET 
+                    `bought`=:bought 
+                    WHERE `stock_id`=:stock_id");
+                    $sthStockModel->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
+                    $sthStockModel->bindParam(':bought', $this->stock_price, \PDO::PARAM_INT);
+                    $sthStockModel->execute();
+
+                }else if(2 == $type) {// 卖出时 
+                    $number -= $stock_deal_total;
+                    if($number < 0){//检查剩余股票数量是否够卖
+                        $data['status'] = 0;
+                        $data['message'] = "剩股票数量不够";
+                        return $data;
+                    } elseif (0 == $number) {// 清仓时
+                        static::setGone($this->stock_id, $date_and_time[0]);
+                    }
+                } else {
+                    return false;
                 }
     
                 if(!StockModel::setStockNumber($stock_id, $number)){ // 
@@ -214,10 +203,22 @@ class StockDetailModel
                     $data['message'] = "stock表更新stock_number时失败";
                     return $data;
                 }
-    
+
+                // 交易历史
+                $theDataOfstockDateModel = (new StockHistoryModel($stock_id, [
+                    'stock_price' => $this->stock_price,
+                    'stock_deal_total' => $this->stock_deal_total,
+                    'stock_type' => $type,
+                    'created_at' => $this->created_at,
+                ]))->create();
+                if(0  == $theDataOfstockDateModel['status']){
+                    $database->pdo->rollBack();
+                    return $theDataOfstockDateModel;
+                }
                 
             }
-            $sth  = $database->pdo->prepare("INSERT INTO ".static::tableName() ." SET `stock_id`=:stock_id, 
+
+            $sql = " SET `stock_id`=:stock_id, 
             `stock_price`=:stock_price, 
             `stock_deal_total`=:stock_deal_total,
             `stock_type`=:stock_type,
@@ -230,15 +231,19 @@ class StockDetailModel
             `close`=:close,
             `lup`=:lup,
             `ldown`=:ldown,
-            `hight`=:hight,  
-            `low`=:low,
+            `highest`=:highest,  
+            `lowest`=:lowest,
             
             `average`=:average,  
             `change`=:change,  
             `amplitude`=:amplitude,
+            `volume`=:volume,
+            `amount`=:amount,
             `stock_detail_remark`=:stock_detail_remark
-            ");
-            
+            ";
+
+
+            $sth  = $database->pdo->prepare("INSERT INTO ".static::tableName() . $sql);
 
             $sth->bindParam(':stock_id', $stock_id, \PDO::PARAM_STR);
             $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_INT);
@@ -252,40 +257,49 @@ class StockDetailModel
             $sth->bindParam(':close', $this->close, \PDO::PARAM_INT);
             $sth->bindParam(':lup', $this->lup, \PDO::PARAM_INT);
             $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_INT);
-            $sth->bindParam(':hight', $this->hight, \PDO::PARAM_INT);
-            $sth->bindParam(':low', $this->low, \PDO::PARAM_INT);
+            $sth->bindParam(':highest', $this->highest, \PDO::PARAM_INT);
+            $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_INT);
             $sth->bindParam(':average', $this->average, \PDO::PARAM_INT);
             $sth->bindParam(':change', $this->change, \PDO::PARAM_INT);
             $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_INT);
+            $sth->bindParam(':volume', $this->volume, \PDO::PARAM_INT);
+            $sth->bindParam(':amount', $this->amount, \PDO::PARAM_INT);
             $sth->bindParam(':stock_detail_remark', $this->stock_detail_remark, \PDO::PARAM_STR);
             
             if($sth->execute()){
                 $query = StockDateModel::getByIdAndDate($stock_id, $date_and_time[0]);
-                $stockDateModel = new StockDateModel($stock_id,
-                    $date_and_time[0],
-                    $this->open,
-                    $this->close,
-                    $this->lup,
-                    $this->ldown,
-                    $this->hight, 
-                    $this->low, 
-                    $this->average,
-                    $this->amplitude,
-                    $this->change,
-                    $this->created_at);
-                $stockModel = new StockModel($stock_id,
-                    null, null,
-                    $this->stock_price, 
-                    $this->open,
-                    $this->close,
-                    $this->lup,
-                    $this->ldown,
-                    $this->hight, 
-                    $this->low, 
-                    $this->average,
-                    $this->amplitude,
-                    $this->change,
-                    $this->created_at);
+                
+                $stockDateModel = new StockDateModel($stock_id, $date_and_time[0], $this->created_at, [
+                    'stock_price' => $this->stock_price,
+                    'open' => $this->open,
+                    'close' => $this->close,
+                    'lup' => $this->lup,
+                    'ldown' => $this->ldown,
+                    'highest' => $this->highest,
+                    'lowest' => $this->lowest,
+                    'average' => $this->average,
+                    'amplitude' => $this->amplitude,
+                    'volume' => $this->volume,
+                    'amount' => $this->amount,
+                    'change' => $this->change,
+                ]);
+
+                
+                $stockModel = new StockModel($stock_id, null, null, [
+                    'stock_price' => $this->stock_price,
+                    'open' => $this->open,
+                    'close' => $this->close,
+                    'lup' => $this->lup,
+                    'ldown' => $this->ldown,
+                    'highest' => $this->highest,
+                    'lowest' => $this->lowest,
+                    'average' => $this->average,
+                    'amplitude' => $this->amplitude,
+                    'volume' => $this->volume,
+                    'amount' => $this->amount,
+                    'change' => $this->change,
+                    'updated_at' => $this->created_at,
+                ]);
         
                 $data2 = $stockModel->update();
                 if(0  == $data2['status']){
@@ -302,8 +316,8 @@ class StockDetailModel
         
                 }else {// update
                     if($query["open"]  != $this->open 
-                    || $query["hight"]  != $this->hight   
-                    || $query["low"]  != $this->low   
+                    || $query["highest"]  != $this->highest   
+                    || $query["lowest"]  != $this->lowest   
                     || $query["average"]  != $this->average   
                     || $query["amplitude"]  != $this->amplitude   
                     || $query["change"]  != $this->change   
@@ -353,6 +367,23 @@ class StockDetailModel
             $data['message'] = $sth->errorInfo();
         }
         return $data;
+    }
+
+    /**
+     * @author: lhh
+     * 创建日期：2024-11-03
+     * 修改日期：2024-11-03
+     * 名称： search
+     * 功能：搜索值按照指定的字段
+     * 说明：
+     * 注意：
+     * @param $id
+     * @return mixed
+     */
+    public static function search($key, $value) {
+        $query = Registry::get('db')->query("SELECT * FROM ".static::tableName()." WHERE {$key} = {$value}")->fetchAll(\PDO::FETCH_ASSOC);
+        return $query;
+        
     }
 
     

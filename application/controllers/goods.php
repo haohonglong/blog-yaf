@@ -1,7 +1,7 @@
 <?php
+use base\controller\ControllerBase;
 
-
-class GoodsController extends Base {
+class GoodsController extends ControllerBase {
 	public function indexAction() {
         $data = GoodsModel::listAll();
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);

@@ -1,8 +1,6 @@
 <?php
-
-
-
 use Yaf\Controller_Abstract;
+
 /**
  * @name ErrorController
  * @desc 错误控制器, 在发生未捕获的异常时刻被调用

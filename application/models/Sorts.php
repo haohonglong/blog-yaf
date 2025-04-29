@@ -127,16 +127,45 @@ class SortsModel
         }
     }
 
-    public static function delete($id) {
-        $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName()." WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-        if($sth->execute()){
-            $data['status'] = 1;
-            $data['message'] = '删除成功';
-        }else{
+    public static function delete($id, $force = 0) {
+        $database = Registry::get('db');
+        try {
+            $database->pdo->beginTransaction();
+            
+            $sth  = $database->pdo->prepare("DELETE FROM ".static::tableName()." WHERE id = :id limit 1");
+            $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+            if($sth->execute()){
+                $data['status'] = 1;
+                $data['message'] = '删除成功';
+                if($force > 0){
+                    $url  = $database->pdo->prepare("DELETE FROM ".UrlModel::tableName()." WHERE sorts_id = :id");
+                    $url->bindParam(':id', $id, \PDO::PARAM_INT);
+                    if($url->execute()){
+                        $database->pdo->commit();
+                        $data['status'] = 1;
+                        $data['message'] = '删除成功(包括其以下的全部数据)';
+
+                    }else{
+                        $database->pdo->rollBack();
+                        $data['status'] = 0;
+                        $data['message'] = $url->errorInfo();
+                    }
+
+                }else {
+                    $database->pdo->commit();
+
+                }
+
+            }else{
+                $data['status'] = 0;
+                $data['message'] = $sth->errorInfo();
+            }
+        } catch (Exception $e) {
+            $database->pdo->rollBack();
             $data['status'] = 0;
-            $data['message'] = $sth->errorInfo();
+            $data['message'] = $e->getMessage();
         }
+        
         return $data;
     }
 }

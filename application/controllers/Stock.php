@@ -1,59 +1,48 @@
 <?php
-
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class StockController extends Base {
+class StockController extends ControllerBase {
 
-	private function putTheDataToTheStockDetailModel($stock_id
-		,$stock_name
-		,$stock_price
-		,$stock_type
-		,$stock_deal_total
-		,$created_at
-		,$stock_detail_remark
-
-		,$open
-		,$close
-		,$lup
-		,$ldown
-		,$hight
-		,$low
-		,$average
-		,$amplitude
-		,$change){
-
-		if(0 == $open){
+	private function putTheDataToTheStockDetailModel($stock_id, $stock_code, $stock_name, $data){
+		
+		if(0 == $data['open']){
 			$result['status'] = 3;
-			$result['message'] = $stock_id. '-' .$stock_name.': 开盘不能是零';
+			$result['message'] = $stock_code. '-' .$stock_name.': 开盘不能是零';
 			return $result;
 		}
 
-		if(0 == $close){
+		if(0 == $data['close']){
 			$result['status'] = 3;
-			$result['message'] = $stock_id. '-' .$stock_name.': 收盘不能是零';
+			$result['message'] = $stock_code. '-' .$stock_name.': 收盘不能是零';
 			return $result;
 		}
 
-		$StockDetailModel = new StockDetailModel(
-			 $stock_id
-			,$stock_price
-			,$stock_type
-			,$stock_deal_total
-			,$created_at
-			,$stock_detail_remark
+		if(0 == $data['volume']){
+			$result['status'] = 3;
+			$result['message'] = $stock_code. '-' .$stock_name.': 成交量不能是零';
+			return $result;
+		}
 
-			,$open
-			,$close
-			,$lup
-			,$ldown
-			,$hight
-			,$low
-			,$average
-			,$amplitude
-			,$change
-		
-		
-		);
+		if(0 == $data['highest']){
+			$result['status'] = 3;
+			$result['message'] = $stock_code. '-' .$stock_name.': 最高值不能是零';
+			return $result;
+		}
+
+		if(0 == $data['lowest']){
+			$result['status'] = 3;
+			$result['message'] = $stock_code. '-' .$stock_name.': 最低值不能是零';
+			return $result;
+		}
+
+
+
+		$data['stock_type'] = $data['stock_type'] ?? 0;
+		$data['stock_deal_total'] = $data['stock_deal_total'] ?? 0;
+		$data['stock_detail_remark'] = $data['stock_detail_remark'] ?? "";
+
+		$StockDetailModel = new StockDetailModel($stock_id, $data);
 		$data2 = $StockDetailModel->create();
 		switch ($data2['status']) {
 			case 0:
@@ -64,7 +53,7 @@ class StockController extends Base {
 			
 			case 1:
 				$result['status'] = 0;
-				$result['message'] = $stock_id. '-' .$stock_name.': 已更新完成';
+				$result['message'] = "$stock_code($stock_id)-$stock_name: 已更新完成";
 				break;
 				
 			default:
@@ -78,7 +67,7 @@ class StockController extends Base {
 	private function feach($item){
 		
 		$result = [];
-		$stock_id = $item['stock_id'];
+		$stock_code = $item['stock_code'];
 		$stock_name = $item['stock_name'];
 
 		$headers = [
@@ -121,9 +110,9 @@ class StockController extends Base {
             'dspName' => 'iphone',
             'tn' => 'tangram',
             'client' => 'app',
-            'query' => $stock_id,
-            'code' => $stock_id,
-            'word' => $stock_id,
+            'query' => $stock_code,
+            'code' => $stock_code,
+            'word' => $stock_code,
             'resource_id' => '5429',
             'ma_ver' => '4',
             'finClientType' => 'pc',
@@ -155,7 +144,7 @@ class StockController extends Base {
 		
 		if(!isset($data)){
 			$result['status'] = 2;
-			$result['message'] = "{$stock_id}-{$stock_name} url地址错误或者是休市日";
+			$result['message'] = "{$stock_code}-{$stock_name} url地址错误或者是休市日";
 		} else {
 			try {
 				$minute_data = $data['Result'][1]['DisplayData']['resultData']['tplData']['result']['minute_data'];
@@ -165,76 +154,65 @@ class StockController extends Base {
 				$priceinfo  = $minute_data['priceinfo'];
 				$origin_pankou       = $minute_data['pankouinfos']['origin_pankou'];
 				$average    = $minute_data['pankouinfos']['list'][13]['value'];
-				
-				$data = [
+				// print_r($data);exit;
+				$open = isset($origin_pankou['open']) ? $origin_pankou['open'] : 0;
+				$preClose = isset($origin_pankou['preClose']) ? $origin_pankou['preClose'] : 0;
+				$limitUp = isset($origin_pankou['limitUp']) ? $origin_pankou['limitUp'] : 0;
+				$limitDown = isset($origin_pankou['limitDown']) ? $origin_pankou['limitDown'] : 0;
+				$high = isset($origin_pankou['high']) ? $origin_pankou['high'] : 0;
+				$low = isset($origin_pankou['low']) ? $origin_pankou['low'] : 0;
+				$turnoverRatio = isset($origin_pankou['turnoverRatio']) ? $origin_pankou['turnoverRatio'] : 0;
+				$amplitudeRatio = isset($origin_pankou['amplitudeRatio']) ? $origin_pankou['amplitudeRatio'] : 0;
+				$volume = isset($origin_pankou['volume']) ? $origin_pankou['volume'] : 0;
+				$inside = isset($origin_pankou['inside']) ? $origin_pankou['inside'] : 0;
+				$outside = isset($origin_pankou['outside']) ? $origin_pankou['outside'] : 0;
+				$amount = isset($origin_pankou['amount']) ? $origin_pankou['amount'] : 0;
+				$weibiRatio = isset($origin_pankou['weibiRatio']) ? $origin_pankou['weibiRatio'] : 0;
+				$volumeRatio = isset($origin_pankou['volumeRatio']) ? $origin_pankou['volumeRatio'] : 0;
+				$currencyValue = isset($origin_pankou['currencyValue']) ? $origin_pankou['currencyValue'] : 0;
+				$capitalization = isset($origin_pankou['capitalization']) ? $origin_pankou['capitalization'] : 0;
+				$peratio = isset($origin_pankou['peratio']) ? $origin_pankou['peratio'] : 0;
+				$lyr = isset($origin_pankou['lyr']) ? $origin_pankou['lyr'] : 0;
+				$bvRatio = isset($origin_pankou['bvRatio']) ? $origin_pankou['bvRatio'] : 0;
+				$perShareEarn = isset($origin_pankou['perShareEarn']) ? $origin_pankou['perShareEarn'] : 0;
+				$netAssetsPerShare = isset($origin_pankou['netAssetsPerShare']) ? $origin_pankou['netAssetsPerShare'] : 0;
+				$circulatingCapital = isset($origin_pankou['circulatingCapital']) ? $origin_pankou['circulatingCapital'] : 0;
+				$totalShareCapital = isset($origin_pankou['totalShareCapital']) ? $origin_pankou['totalShareCapital'] : 0;
+				$priceLimit = isset($origin_pankou['priceLimit']) ? $origin_pankou['priceLimit'] : 0;
+				$w52_low = isset($origin_pankou['w52_low']) ? $origin_pankou['w52_low'] : 0;
+				$w52_high = isset($origin_pankou['w52_high']) ? $origin_pankou['w52_high'] : 0;
+
+				$result = [
 					'stock_price' => $origin_pankou['currentPrice'],
 					'created_at' => $date,
-					'open' => $origin_pankou['open'],
-					'close' => $origin_pankou['preClose'],
-					'lup' => $origin_pankou['limitUp'],
-					'ldown' => $origin_pankou['limitDown'],
-					'hight'     => $origin_pankou['high'],
-					'low'       => $origin_pankou['low'],
+					'open' => $open ,
+					'close' => $preClose,
+					'lup' => $limitUp,
+					'ldown' => $limitDown,
+					'highest'     => $high,
+					'lowest'       => $low,
 					'average'   => $average,
-					'change'    => $origin_pankou['turnoverRatio'],
-					'amplitude' => $origin_pankou['amplitudeRatio'],
-					'volume' => $origin_pankou['volume'], //成交量
-					'inside' => $origin_pankou['inside'], //内盘
-					'outside' => $origin_pankou['outside'], //外盘
-					'amount' => $origin_pankou['amount'], //成交额
-					'weibiRatio' => $origin_pankou['weibiRatio'], //委比
-					'volumeRatio' => $origin_pankou['volumeRatio'], //量比
-					'currencyValue' => $origin_pankou['currencyValue'], //流通值
-					'capitalization' => $origin_pankou['capitalization'], //总市值
-					'peratio' => $origin_pankou['peratio'], //市盈(TTM)
-					'lyr' => $origin_pankou['lyr'], //市盈(静)
-					'bvRatio' => $origin_pankou['bvRatio'], //市净率
-					'perShareEarn' => $origin_pankou['perShareEarn'], //成交量
-					'netAssetsPerShare' => $origin_pankou['netAssetsPerShare'], //
-					'circulatingCapital' => $origin_pankou['circulatingCapital'], //流通股
-					'totalShareCapital' => $origin_pankou['totalShareCapital'], //总股本
-					'priceLimit' => $origin_pankou['priceLimit'], //涨跌幅
-					'w52_low' => $origin_pankou['w52_low'], //52周低
-					'w52_high' => $origin_pankou['w52_high'], //52周高
+					'change'    => $turnoverRatio, //换手率
+					'amplitude' => $amplitudeRatio, //振幅
+					'volume' => $volume, //成交量
+					'inside' => $inside, //内盘
+					'outside' => $outside, //外盘
+					'amount' => $amount, //成交额
+					'weibiRatio' => $weibiRatio, //委比
+					'volumeRatio' => $volumeRatio, //量比
+					'currencyValue' => $currencyValue, //流通值
+					'capitalization' => $capitalization, //总市值
+					'peratio' => $peratio, //市盈(TTM) string
+					'lyr' => $lyr, //市盈(静) string
+					'bvRatio' => $bvRatio, //市净率
+					'perShareEarn' => $perShareEarn, //
+					'netAssetsPerShare' => $netAssetsPerShare, //
+					'circulatingCapital' => $circulatingCapital, //流通股
+					'totalShareCapital' => $totalShareCapital, //总股本
+					'priceLimit' => $priceLimit, //涨跌幅
+					'w52_low' => $w52_low, //52周低
+					'w52_high' => $w52_high, //52周高
 				];
-				// print_r($data);exit;
-
-				$stock_type = 0;
-				$stock_price = $data['stock_price'];
-				$stock_deal_total = 0;
-				$created_at = $data['created_at'];
-				$stock_detail_remark = "";
-		
-				$open      = $data['open'];
-				$close     = $data['close'];
-				$lup       = $data['lup'];
-				$ldown     = $data['ldown'];
-				$hight     = $data['hight'];
-				$low       = $data['low'];
-				$average   = $data['average'];
-				$change    = $data['change'];
-				$amplitude = $data['amplitude'];
-
-				$result = $this->putTheDataToTheStockDetailModel($stock_id
-				   ,$stock_name
-				   ,$stock_price
-				   ,$stock_type
-				   ,$stock_deal_total
-				   ,$created_at
-				   ,$stock_detail_remark
-	   
-				   ,$open
-				   ,$close
-				   ,$lup
-				   ,$ldown
-				   ,$hight
-				   ,$low
-				   ,$average
-				   ,$amplitude
-				   ,$change
-			   
-			   
-			   );
 
 				
 			} catch (Exception $e) {
@@ -251,12 +229,12 @@ class StockController extends Base {
 	private function feach2($item){
 		
 		$result = [];
-		$stock_id = $item['stock_id'];
+		$stock_code = $item['stock_code'];
 		$stock_name = $item['stock_name'];
 		$curl = curl_init();
 
 		curl_setopt_array($curl, [
-			CURLOPT_URL => 'https://finance.pae.baidu.com/vapi/v1/getquotation?all=1&srcid=5353&pointType=string&group=quotation_minute_ab&market_type=ab&new_Format=1&finClientType=pc&query='.$stock_id.'&code='.$stock_id,
+			CURLOPT_URL => 'https://finance.pae.baidu.com/vapi/v1/getquotation?all=1&srcid=5353&pointType=string&group=quotation_minute_ab&market_type=ab&new_Format=1&finClientType=pc&query='.$stock_code.'&code='.$stock_code,
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING => '',
 			CURLOPT_MAXREDIRS => 10,
@@ -274,7 +252,7 @@ class StockController extends Base {
 		
 		if(!isset($data)){
 			$result['status'] = 2;
-			$result['message'] = "{$stock_id}-{$stock_name} url地址错误或者是休市日";
+			$result['message'] = "{$stock_code}-{$stock_name} url地址错误或者是休市日";
 		} else {
 			try {
 				$date = $data['Result']['update']['text'];
@@ -282,57 +260,24 @@ class StockController extends Base {
 				$created_at = $y.$date;
 				$stock_price = $data['Result']['buyinfos'][0]['bidprice'];
 				$data = $data['Result']['pankouinfos']['list'];
-				$data = [
+				// print_r($data);exit;
+
+
+				$result = [
 					'stock_price' => $stock_price,
 					'created_at' => $created_at,
 					'open' => $data[0]['value'],
 					'close' => $data[3]['value'],
 					'lup' => $data[15]['value'],
 					'ldown' => $data[18]['value'],
-					'hight'     => $data[1]['value'],
-					'low'       => $data[4]['value'],
+					'highest'     => $data[1]['value'],
+					'lowest'       => $data[4]['value'],
 					'average'   => $data[13]['value'],
 					'change'    => $data[6]['originValue'],
 					'amplitude' => $data[19]['originValue'],
+					'volume' => $data[2]['originValue'],
+					'amount' => $data[5]['originValue'],
 				];
-				// print_r($data);exit;
-
-				$stock_type = 0;
-				$stock_price = $data['stock_price'];
-				$stock_deal_total = 0;
-				$created_at = $data['created_at'];
-				$stock_detail_remark = "";
-		
-				$open      = $data['open'];
-				$close     = $data['close'];
-				$lup       = $data['lup'];
-				$ldown     = $data['ldown'];
-				$hight     = $data['hight'];
-				$low       = $data['low'];
-				$average   = $data['average'];
-				$change    = $data['change'];
-				$amplitude = $data['amplitude'];
-
-				$result = $this->putTheDataToTheStockDetailModel($stock_id
-				   ,$stock_name
-				   ,$stock_price
-				   ,$stock_type
-				   ,$stock_deal_total
-				   ,$created_at
-				   ,$stock_detail_remark
-	   
-				   ,$open
-				   ,$close
-				   ,$lup
-				   ,$ldown
-				   ,$hight
-				   ,$low
-				   ,$average
-				   ,$amplitude
-				   ,$change
-			   
-			   
-			   );
 
 				
 			} catch (Exception $e) {
@@ -348,12 +293,12 @@ class StockController extends Base {
 
 	private function feach3($item){
 		$result = [];
-		$stock_id = $item['stock_id'];
+		$stock_code = $item['stock_code'];
 		$stock_name = $item['stock_name'];
 		$curl = curl_init();
 
 		curl_setopt_array($curl, [
-			CURLOPT_URL => 'http://api.mairui.club/hsrl/ssjy/'. $stock_id .'/2436F02E-99D9-49C4-B1B5-BE4D187AF029',
+			CURLOPT_URL => 'http://api.mairui.club/hsrl/ssjy/'. $stock_code .'/2436F02E-99D9-49C4-B1B5-BE4D187AF029',
 			CURLOPT_RETURNTRANSFER => true,
 			CURLOPT_ENCODING => '',
 			CURLOPT_MAXREDIRS => 10,
@@ -377,63 +322,28 @@ class StockController extends Base {
 				
 				default:
 					$result['status'] = 2;
-					$result['message'] = "{$stock_id}-{$stock_name} url地址错误或者是休市日";
+					$result['message'] = "{$stock_code}-{$stock_name} url地址错误或者是休市日";
 					break;
 			}
 			
 		} else {
 			try {
-				$data = [
+
+				$result = [
 					'stock_price' => $data['p'],
 					'created_at' => $data['t'],
 					'open' => $data['o'],
 					'close' => $data['yc'],
 					'lup' => $item['lup'],
 					'ldown' => $item['ldown'],
-					'hight'     => $data['h'],
-					'low'       => $data['l'],
+					'highest'     => $data['h'],
+					'lowest'       => $data['l'],
 					'average'   => $item['average'],
 					'change'    => $data['hs'],
 					'amplitude' => $data['zf'],
+					'volume' => $data['v'],
+					'amount' => $data['cje'],
 				];
-
-
-				$stock_type = 0;
-				$stock_price = $data['stock_price'];
-				$stock_deal_total = 0;
-				$created_at = $data['created_at'];
-				$stock_detail_remark = "";
-		
-				$open      = $data['open'];
-				$close     = $data['close'];
-				$lup       = $data['lup'];
-				$ldown     = $data['ldown'];
-				$hight     = $data['hight'];
-				$low       = $data['low'];
-				$average   = $data['average'];
-				$change    = $data['change'];
-				$amplitude = $data['amplitude'];
-
-				$result = $this->putTheDataToTheStockDetailModel($stock_id
-				   ,$stock_name
-				   ,$stock_price
-				   ,$stock_type
-				   ,$stock_deal_total
-				   ,$created_at
-				   ,$stock_detail_remark
-	   
-				   ,$open
-				   ,$close
-				   ,$lup
-				   ,$ldown
-				   ,$hight
-				   ,$low
-				   ,$average
-				   ,$amplitude
-				   ,$change
-			   
-			   
-			   );
 
 				
 			} catch (Exception $e) {
@@ -456,27 +366,62 @@ class StockController extends Base {
 		$redis = Registry::get('redis');
 		//发送消息
 		
-		sleep(2);
 		$progress = 1;
-		while($progress)
-		{
-			$progress = $redis->get("progress");
-			
-			// $c = "event:" . PHP_EOL; //定义事件
-			$c = "data: " . $progress . PHP_EOL; //推送内容
-			echo $c . PHP_EOL;
+		try {
+			while($progress)
+			{
+				// sleep(1);
+				$progress = (int)$redis->get("progress");
+				
+				// $c = "event:" . PHP_EOL; //定义事件
+				$c = "data: " . $progress . PHP_EOL; //推送内容
+				echo $c . PHP_EOL;
 
-			while (ob_get_level() > 0) {
-				ob_end_flush();
+				while (ob_get_level() > 0) {
+					ob_end_flush();
+				}
+				flush();
+				if ( connection_aborted() ) break;
+				
 			}
-			flush();
-			if ( connection_aborted() ) break;
-			sleep(1);
+		} catch (Exception $e) {
+			$data=[];
+			$data['status'] = 1;
+			$data['message'] = $e->getMessage();
+			echo json_encode($data, JSON_UNESCAPED_UNICODE);
+			exit;
 		}
+		
 		
 		exit;
 
 	}
+
+
+	public function setAutoAction(){
+		$time = $this->getRequest()->getQuery("time", 60);
+		$redis = Registry::get('redis');
+		$redis->set('auto_feach_stocks', 1);
+		$redis->set('auto_feach_stocks_delaytime', $time);
+		$data['status'] = 0;
+		$data['message'] = "后台自动获取数据已开启";
+		echo json_encode($data, JSON_UNESCAPED_UNICODE);
+		exit;
+
+	}
+
+	public function stopAutoAction(){
+		$redis = Registry::get('redis');
+		$redis->set('auto_feach_stocks', 0);
+
+		$data['status'] = 0;
+		$data['message'] = "后台自动获取数据已关闭";
+		echo json_encode($data, JSON_UNESCAPED_UNICODE);
+		exit;
+		
+	}
+
+	
 
 	/**
 	 * 获取API 接口数据并存入数据库
@@ -500,60 +445,76 @@ class StockController extends Base {
 					$data = $this->feach($one);
 
 			}
+
+			if(!isset($data['status'])){
+				$data = $this->putTheDataToTheStockDetailModel($stock_id, $one['stock_code'], $one['stock_name'], $data);
+			}
 			
 			$datas['datas'][] = $data;
 		} else {
-			$total = 0;
-			$list = StockModel::getList();
 			$redis = Registry::get('redis');
-			try {
-				$i = 0;
-				$len = count($list);
-				
-				foreach ($list as $item) {
-					$progress = intval((++$i)/$len * 100);
-					$redis->set('progress', $progress);
-
-					switch ($way) {
-						case '2':
-							$data = $this->feach2($item);
-							break;
-						case '3':
-							$data = $this->feach3($item);
-							break;
+			do {
+				try {
+					$total = 0;
+					$list = StockModel::getList();
+					$i = 0;
+					$len = count($list);
+					
+					foreach ($list as $item) {
+						$redis->set('progress', intval((++$i)/$len * 100));
+	
+						switch ($way) {
+							case '2':
+								$data = $this->feach2($item);
+								break;
+							case '3':
+								$data = $this->feach3($item);
+								break;
+							
+							default:
+								$data = $this->feach($item);
+		
+						}
+	
+						if(!isset($data['status'])){
+							$data = $this->putTheDataToTheStockDetailModel($item['stock_id'], $item['stock_code'], $item['stock_name'], $data);
+						}
+	
 						
-						default:
-							$data = $this->feach($item);
+		
+						$datas['datas'][] = $data;
+						
+						if(2 == $data['status']){
+							break;
+						}
+						if(3 == $data['status']){
+							continue;
+						}
+						$total++;
 	
+						
+						
+		
 					}
-	
+					$datas['total'] = $total;
+					
+				} catch (Exception $e) {
+					$data=[];
+					$data['status'] = 1;
+					$data['message'] = $e->getMessage();
 					$datas['datas'][] = $data;
+					echo json_encode($datas, JSON_UNESCAPED_UNICODE);
+					exit;
 					
-					if(2 == $data['status']){
-						break;
-					}
-					if(3 == $data['status']){
-						continue;
-					}
-					$total++;
-
-					
-					
-	
+				} finally {
+					$redis->set('progress', 0);
 				}
-				$datas['total'] = $total;
-				
-			} catch (Exception $e) {
-				$data=[];
-				$data['status'] = 1;
-				$data['message'] = $e->getMessage();
-				$datas['datas'][] = $data;
-				echo json_encode($datas, JSON_UNESCAPED_UNICODE);
-				exit;
-				
-			} finally {
-				// $redis->set('progress', 0);
-			}
+
+			// 	sleep($redis->get('auto_feach_stocks_delaytime'));
+
+			} while (0);
+
+			
 			
 		}
 
@@ -572,15 +533,20 @@ class StockController extends Base {
         echo $json;
         exit;
 	}
+	
 	public function addAction() {
 		$errors = [];
 		$stock_id = $this->getRequest()->getPost("stock_id", null);
+		$stock_code = $this->getRequest()->getPost("stock_code", null);
 		$stock_name = $this->getRequest()->getPost("stock_name", null);
 		$stock_remark = $this->getRequest()->getPost("stock_remark", "");
 		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
+		if(!isset($stock_code) || empty($stock_code)) { $errors["stock_code"] = "stock_code 参数是必须的"; }
 		if(!isset($stock_name) || empty($stock_name)) { $errors["stock_name"] = "stock_name 参数是必须的"; }
 		if(empty($errors)) {
-			$Stock = new StockModel($stock_id, $stock_name, $stock_remark);
+			$Stock = new StockModel($stock_id, $stock_code, $stock_name, [
+				'stock_remark' => $stock_remark
+			]);
 			$data = $Stock->create();
 		} else {
 			$data['status'] = 0;
@@ -591,4 +557,105 @@ class StockController extends Base {
 		echo json_encode($data,JSON_UNESCAPED_UNICODE);
         exit;
 	}
+
+	public function deleteAction() {
+        $message = "";
+        $stock_id   = $this->getRequest()->getQuery("stock_id", "");
+        if(empty($stock_id)){
+            $message = "请选择要删除的数据";
+        }
+        $data = [];
+        if(empty($message)){
+            $data = StockModel::delete($stock_id);
+        }else{
+            $data['status'] = 1;
+            $data['message'] = $message;
+        }
+
+        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+	public function setLevelAction() {
+        $message = "";
+        $stock_id   = $this->getRequest()->getQuery("stock_id", "");
+        $level   = $this->getRequest()->getQuery("level", 0);
+        if(empty($stock_id)){
+            $message = "请选择stock_id";
+        }
+        $data = [];
+        if(empty($message)){
+			if(StockModel::setLevel($stock_id, $level)){
+				$data['status'] = 0;
+            	$data['message'] = "设置五星推荐成功";
+			}else {
+				$data['status'] = 1;
+            	$data['message'] = "设置五星推荐失败";
+			}
+        }else{
+            $data['status'] = 1;
+            $data['message'] = $message;
+        }
+
+        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+	public function setCostAction() {
+        $message = "";
+        $stock_id   = $this->getRequest()->getQuery("stock_id", "");
+        $cost   = $this->getRequest()->getQuery("cost", null);
+		
+        if(empty($stock_id)){
+            $message = "请选择stock_id";
+        }
+        $data = [];
+        if(empty($message)){
+			if(StockModel::setCost($stock_id, $cost)){
+				$data['status'] = 0;
+            	$data['message'] = "修改股票成本成功";
+			}else {
+				$data['status'] = 1;
+            	$data['message'] = "修改股票成本失败";
+			}
+        }else{
+            $data['status'] = 1;
+            $data['message'] = $message;
+        }
+
+        echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
+
+	public function searchAction(){
+		$key = $this->getRequest()->getQuery("key", "");
+		$value = $this->getRequest()->getQuery("value", "");
+		$query = StockModel::search($key, $value);
+		
+		echo json_encode($query,JSON_UNESCAPED_UNICODE);
+		exit;
+
+		
+	}
+
+	public function tradeAction(){
+		$errors = [];
+		$stock_id = $this->getRequest()->getPost("stock_id", null);
+		$stock_type = (int)$this->getRequest()->getPost("stock_type", 0);
+		$stock_price = $this->getRequest()->getPost("stock_price", 0);
+		$stock_deal_total = (int)$this->getRequest()->getPost("stock_deal_total", 0);
+		$created_at = $this->getRequest()->getPost("created_at", null);
+		$stock_detail_remark = $this->getRequest()->getPost("stock_detail_remark", "");
+
+		$one = StockModel::getLastOneByStockId($stock_id);
+
+		$data = $this->feach($one);
+		if(!isset($data['status'])){
+			$data['stock_type'] = $stock_type;
+			$resul = $this->putTheDataToTheStockDetailModel($stock_id, $one['stock_code'], $one['stock_name'], $data);
+
+		}
+	}
 }
+

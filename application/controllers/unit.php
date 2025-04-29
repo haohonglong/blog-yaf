@@ -1,6 +1,7 @@
 <?php
+use base\controller\ControllerBase;
 
-class UnitController extends Base {
+class UnitController extends ControllerBase {
 	public function indexAction() {
         $data = [
             "data"=>UnitModel::listAll(),

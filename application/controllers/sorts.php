@@ -1,7 +1,8 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class SortsController extends Base {
+class SortsController extends ControllerBase {
 
     private function getTree($list,$pk='id', $pid='pid', $child='child', $root=0) {
         $tree=[];
@@ -141,6 +142,7 @@ class SortsController extends Base {
     public function deleteAction() {
         $errors = [];
         $id   = $this->getRequest()->getQuery("id", "");
+        $force   = $this->getRequest()->getQuery("force", 0);
         if(empty($id)){
             $errors['id'] = "id是必须的";
         }
@@ -157,7 +159,7 @@ class SortsController extends Base {
 
         $data = [];
         if(empty($errors)){
-            $data = SortsModel::delete($id);
+            $data = SortsModel::delete($id, $force);
         }else{
             $data['status'] = 0;
             $data['errors'] = $errors;

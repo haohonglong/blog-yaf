@@ -1,6 +1,7 @@
 <?php
+use base\controller\ControllerBase;
 
-class ShopController extends Base {
+class ShopController extends ControllerBase {
 	public function indexAction() {
         $data = [
             "data"=>ShopModel::listAll(),

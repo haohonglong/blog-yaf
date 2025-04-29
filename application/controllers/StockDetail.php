@@ -1,11 +1,21 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class StockDetailController extends Base {
+class StockDetailController extends ControllerBase {
 	public function indexAction() {
 		$stock_id   = $this->getRequest()->getQuery("stock_id", null);
+		$size   = $this->getRequest()->getQuery("size", 1);
 		
-        $data = StockDetailModel::getList($stock_id);
+        $query = StockDetailModel::getList($stock_id, $size);
+		if($query){
+            $data['status'] = 0;
+            $data['data'] = $query;
+            $data['message'] = '获取成功';
+        }else{
+            $data['status'] = 1;
+            $data['message'] = "没有数据";
+        }
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);
         echo $json;
         exit;
@@ -24,11 +34,13 @@ class StockDetailController extends Base {
 		$close = $this->getRequest()->getPost("close", 0.00);
 		$lup = $this->getRequest()->getPost("lup", 0.00);
 		$ldown = $this->getRequest()->getPost("ldown", 0.00);
-		$hight = $this->getRequest()->getPost("hight", 0.00);
-		$low = $this->getRequest()->getPost("low", 0.00);
+		$highest = $this->getRequest()->getPost("highest", 0.00);
+		$lowest = $this->getRequest()->getPost("lowest", 0.00);
 		$average = $this->getRequest()->getPost("average", 0.00);
 		$change = $this->getRequest()->getPost("change", 0.00);
 		$amplitude = $this->getRequest()->getPost("amplitude", 0.00);
+		$volume = $this->getRequest()->getPost("volume", 0);
+		$amount = $this->getRequest()->getPost("amount", 0.00);
 		
 		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
 		if(!isset($stock_price) || empty($stock_price)) { $errors["stock_price"] = "stock_price 参数是必须的"; }
@@ -51,25 +63,24 @@ class StockDetailController extends Base {
 		}
 
 		if(empty($errors)) {
-			$Stock = new StockDetailModel($stock_id
-			,$stock_price
-			,$stock_type
-			,$stock_deal_total
-			,$created_at
-			,$stock_detail_remark
-
-			,$open
-			,$close
-			,$lup
-			,$ldown
-			,$hight
-			,$low
-			,$average
-			,$amplitude
-			,$change
-		
-		
-		);
+			$Stock = new StockDetailModel($stock_id, [
+				'stock_price' => $stock_price,
+				'stock_type' => $stock_type,
+				'created_at' => $created_at,
+				'open' => $open,
+				'close' => $close,
+				'lup' => $lup,
+				'ldown' => $ldown,
+				'highest'     => $highest,
+				'lowest'       => $lowest,
+				'average'   => $average,
+				'change'    => $change,
+				'amplitude' => $amplitude,
+				'volume' => $volume,
+				'amount' => $amount,
+				'stock_detail_remark' => $stock_detail_remark,
+				'stock_deal_total' => $stock_deal_total,
+			]);
 			$data = $Stock->create();
 		} else {
 			$data['status'] = 0;

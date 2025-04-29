@@ -1,48 +1,19 @@
 <?php
 
 use Yaf\Registry;
+use base\model\StockModelBase;
 
-class StockDateModel
+class StockDateModel extends StockModelBase
 {
 
-    private $stock_id,
-            $stock_date_at, 
-            $open,
-            $close,
-            $lup,
-            $ldown,
-            $hight, 
-            $low, 
-            $average,
-            $amplitude,
-            $change,
-            $created_at;
+    private $stock_date_at, $created_at;
 
-    public function __construct($stock_id,
-    $stock_date_at, 
-    $open=0.00,
-    $close=0.00,
-    $lup=0.00,
-    $ldown=0.00,
-    $hight=0.00, 
-    $low=0.00, 
-    $average=0.00,
-    $amplitude=0.00,
-    $change=0.00,
-    $created_at)
+    public function __construct($stock_id, $stock_date_at, $created_at, $data = [])
     {
-        $this->stock_id = $stock_id;
+        parent::__construct($stock_id, $data);
         $this->stock_date_at = $stock_date_at;
-        $this->open = $open;
-        $this->close = $close;
-        $this->lup = $lup;
-        $this->ldown = $ldown;
-        $this->hight = $hight;
-        $this->low = $low;
-        $this->average = $average;
-        $this->amplitude = $amplitude;
-        $this->change = $change;
         $this->created_at = $created_at;
+        
     }
 
     public static function tableName()
@@ -60,6 +31,23 @@ class StockDateModel
 
     /**
      * @author: lhh
+     * 创建日期：2024-5-06
+     * 修改日期：2024-5-06
+     * 名称： getList
+     * 功能：
+     * 说明：
+     * 注意：
+     * @return mixed
+     */
+    public static function getListByStockId($stock_id) {
+        $query = Registry::get('db')->select(static::tableName(),"*",["stock_id"=>$stock_id]);
+
+        return $query;
+    }
+
+
+    /**
+     * @author: lhh
      * 创建日期：2024-5-16
      * 修改日期：2024-5-16
      * 名称： update
@@ -70,28 +58,34 @@ class StockDateModel
      */
     public function update() {
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET 
+        `stock_price`=:stock_price,
         `open`=:open,
         `close`=:close,
         `lup`=:lup,
         `ldown`=:ldown,
-        `hight`=:hight,  
-        `low`=:low,
+        `highest`=:highest,  
+        `lowest`=:lowest,
         `average`=:average,  
         `change`=:change,  
         `amplitude`=:amplitude,
+        `volume`=:volume,
+        `amount`=:amount,
         `updated_at`=:updated_at
         WHERE `stock_id`=:stock_id AND `stock_date_at`=:stock_date_at");
         $sth->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_INT);
         $sth->bindParam(':stock_date_at', $this->stock_date_at, \PDO::PARAM_STR);
         $sth->bindParam(':open', $this->open, \PDO::PARAM_INT);
         $sth->bindParam(':close', $this->close, \PDO::PARAM_INT);
         $sth->bindParam(':lup', $this->lup, \PDO::PARAM_INT);
         $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_INT);
-        $sth->bindParam(':hight', $this->hight, \PDO::PARAM_INT);
-        $sth->bindParam(':low', $this->low, \PDO::PARAM_INT);
+        $sth->bindParam(':highest', $this->highest, \PDO::PARAM_INT);
+        $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_INT);
         $sth->bindParam(':average', $this->average, \PDO::PARAM_INT);
         $sth->bindParam(':change', $this->change, \PDO::PARAM_INT);
         $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_INT);
+        $sth->bindParam(':volume', $this->volume, \PDO::PARAM_INT);
+        $sth->bindParam(':amount', $this->amount, \PDO::PARAM_INT);
         $sth->bindParam(':updated_at', $this->created_at, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
@@ -118,28 +112,34 @@ class StockDateModel
         $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET 
         `stock_date_at`=:stock_date_at, 
         `stock_id`=:stock_id,  
+        `stock_price`=:stock_price,  
         `open`=:open,
         `close`=:close,
         `lup`=:lup,
         `ldown`=:ldown,
-        `hight`=:hight,  
-        `low`=:low,
+        `highest`=:highest,  
+        `lowest`=:lowest,
         `average`=:average,  
-        `change`=:change,  
+        `change`=:change,
         `created_at`=:created_at,  
-        `updated_at`=:updated_at,  
+        `updated_at`=:updated_at,
+        `volume`=:volume,
+        `amount`=:amount,  
         `amplitude`=:amplitude");
         $sth->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
         $sth->bindParam(':stock_date_at', $this->stock_date_at, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_INT);
         $sth->bindParam(':open', $this->open, \PDO::PARAM_INT);
         $sth->bindParam(':close', $this->close, \PDO::PARAM_INT);
         $sth->bindParam(':lup', $this->lup, \PDO::PARAM_INT);
         $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_INT);
-        $sth->bindParam(':hight', $this->hight, \PDO::PARAM_INT);
-        $sth->bindParam(':low', $this->low, \PDO::PARAM_INT);
+        $sth->bindParam(':highest', $this->highest, \PDO::PARAM_INT);
+        $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_INT);
         $sth->bindParam(':average', $this->average, \PDO::PARAM_INT);
         $sth->bindParam(':change', $this->change, \PDO::PARAM_INT);
         $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_INT);
+        $sth->bindParam(':volume', $this->volume, \PDO::PARAM_INT);
+        $sth->bindParam(':amount', $this->amount, \PDO::PARAM_INT);
         $sth->bindParam(':created_at', $this->created_at, \PDO::PARAM_STR);
         $sth->bindParam(':updated_at', $this->created_at, \PDO::PARAM_STR);
 

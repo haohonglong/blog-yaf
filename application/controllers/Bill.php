@@ -1,7 +1,7 @@
 <?php
+use base\controller\ControllerBase;
 
-
-class BillController extends Base {
+class BillController extends ControllerBase {
 	public function getOneAction() {
 		$bill_id   = $this->getRequest()->getQuery("bill_id", null);
         $data = BillsModel::geOnetByBillId($bill_id);

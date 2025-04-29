@@ -1,11 +1,13 @@
 <?php
+use base\controller\ControllerBase;
+
 /**
  * @name IndexController
  * @author root
  * @desc 默认控制器
  * @see http://www.php.net/manual/en/class.yaf-controller-abstract.php
  */
-class IndexController extends Base {
+class IndexController extends ControllerBase {
 
 	/** 
      * 默认动作

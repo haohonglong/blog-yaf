@@ -1,7 +1,8 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class ArticleController extends Base {
+class ArticleController extends ControllerBase {
     
     public function indexAction() {
         $data = ArticleModel::getList();

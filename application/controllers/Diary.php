@@ -1,7 +1,8 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class DiaryController extends Base {
+class DiaryController extends ControllerBase {
 	public function indexAction() {
         $data = DiaryModel::getList();
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);

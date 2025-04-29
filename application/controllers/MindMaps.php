@@ -1,7 +1,8 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class MindMapsController extends Base {
+class MindMapsController extends ControllerBase {
 	public function indexAction() {
         $data = MindMapsModel::getList();
 		

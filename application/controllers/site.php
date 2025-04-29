@@ -1,7 +1,8 @@
 <?php
+use base\controller\ControllerBase;
 use Yaf\Registry;
 
-class SiteController extends Base {
+class SiteController extends ControllerBase {
     
     public function loginAction() {
         $username = $this->getRequest()->getPost("username", "");
