@@ -6,7 +6,7 @@ use base\model\StockModelBase;
 class StockHistoryModel extends StockModelBase
 {
 
-    private $stock_deal_total, $stock_type, $created_at;
+    private $stock_deal_total, $stock_type, $created_at, $stock_detail_id;
 
     public function __construct($stock_id, $data)
     {
@@ -14,6 +14,8 @@ class StockHistoryModel extends StockModelBase
         $this->stock_deal_total = $data['stock_deal_total'] ?? 0;
         $this->stock_type = $data['stock_type'] ?? 1;
         $this->created_at = $data['created_at'] ?? date("Y-m-d H:i:s");
+        $this->stock_detail_id = $data['stock_detail_id'];
+        $this->date_at = $data['date_at'];
 
     }
 
@@ -40,6 +42,30 @@ class StockHistoryModel extends StockModelBase
         $query = Registry::get('db')->query("SELECT * FROM ".static::tableName()." ")->fetchAll(\PDO::FETCH_ASSOC);
         
         return $query;
+    }
+
+
+
+    /**
+     * @author: lhh
+     * 创建日期：2025-6-28
+     * 修改日期：2025-6-28
+     * 名称： setCost
+     * 功能：
+     * 说明：
+     * 注意：
+     * @return mixed
+     */
+    public static function setCost($stock_id, $cost) {
+        $date = date("Y-m-d");
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET cost=:cost WHERE stock_id=:stock_id AND date_at=:date_at");
+        $sth->bindParam(':stock_id', $stock_id, \PDO::PARAM_STR);
+        $sth->bindParam(':cost', $cost, \PDO::PARAM_INT);
+        $sth->bindParam(':date_at', $data, \PDO::PARAM_STR);
+        if($sth->execute()){
+            return true;
+        }
+        return $data;
     }
 
 

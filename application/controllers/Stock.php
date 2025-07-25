@@ -558,6 +558,32 @@ class StockController extends ControllerBase {
         exit;
 	}
 
+	public function editAction() {
+		$errors = [];
+		$stock_id = $this->getRequest()->getPost("stock_id", null);
+		$stock_code = $this->getRequest()->getPost("stock_code", null);
+		$stock_name = $this->getRequest()->getPost("stock_name", null);
+		$stock_cost   = $this->getRequest()->getPost("stock_cost", null);
+		$stock_remark = $this->getRequest()->getPost("stock_remark", "");
+		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
+		if(!isset($stock_code) || empty($stock_code)) { $errors["stock_code"] = "stock_code 参数是必须的"; }
+		if(!isset($stock_name) || empty($stock_name)) { $errors["stock_name"] = "stock_name 参数是必须的"; }
+		if(empty($errors)) {
+			$Stock = new StockModel($stock_id, $stock_code, $stock_name, [
+				'stock_remark' => $stock_remark,
+				'stock_cost' => $stock_cost,
+			]);
+			$data = $Stock->edit();
+		} else {
+			$data['status'] = 0;
+            $data['errors'] = $errors;
+            $data['message'] = '添加失败';
+		}
+
+		echo json_encode($data,JSON_UNESCAPED_UNICODE);
+        exit;
+	}
+
 	public function deleteAction() {
         $message = "";
         $stock_id   = $this->getRequest()->getQuery("stock_id", "");
@@ -591,32 +617,6 @@ class StockController extends ControllerBase {
 			}else {
 				$data['status'] = 1;
             	$data['message'] = "设置五星推荐失败";
-			}
-        }else{
-            $data['status'] = 1;
-            $data['message'] = $message;
-        }
-
-        echo json_encode($data,JSON_UNESCAPED_UNICODE);
-        exit;
-    }
-
-	public function setCostAction() {
-        $message = "";
-        $stock_id   = $this->getRequest()->getQuery("stock_id", "");
-        $cost   = $this->getRequest()->getQuery("cost", null);
-		
-        if(empty($stock_id)){
-            $message = "请选择stock_id";
-        }
-        $data = [];
-        if(empty($message)){
-			if(StockModel::setCost($stock_id, $cost)){
-				$data['status'] = 0;
-            	$data['message'] = "修改股票成本成功";
-			}else {
-				$data['status'] = 1;
-            	$data['message'] = "修改股票成本失败";
 			}
         }else{
             $data['status'] = 1;

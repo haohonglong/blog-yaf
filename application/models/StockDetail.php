@@ -174,50 +174,9 @@ class StockDetailModel extends StockModelBase
 
             $database->pdo->beginTransaction();
 
-            if($type > 0){
-                if(1 == $type){// 买入时
-                    $number += $stock_deal_total; 
-                    $sthStockModel  = $database->pdo->prepare("UPDATE ".StockModel::tableName() ." SET 
-                    `bought`=:bought 
-                    WHERE `stock_id`=:stock_id");
-                    $sthStockModel->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
-                    $sthStockModel->bindParam(':bought', $this->stock_price, \PDO::PARAM_INT);
-                    $sthStockModel->execute();
+            
 
-                }else if(2 == $type) {// 卖出时 
-                    $number -= $stock_deal_total;
-                    if($number < 0){//检查剩余股票数量是否够卖
-                        $data['status'] = 0;
-                        $data['message'] = "剩股票数量不够";
-                        return $data;
-                    } elseif (0 == $number) {// 清仓时
-                        static::setGone($this->stock_id, $date_and_time[0]);
-                    }
-                } else {
-                    return false;
-                }
-    
-                if(!StockModel::setStockNumber($stock_id, $number)){ // 
-                    $database->pdo->rollBack();
-                    $data['status'] = 0;
-                    $data['message'] = "stock表更新stock_number时失败";
-                    return $data;
-                }
-
-                // 交易历史
-                $theDataOfstockDateModel = (new StockHistoryModel($stock_id, [
-                    'stock_price' => $this->stock_price,
-                    'stock_deal_total' => $this->stock_deal_total,
-                    'stock_type' => $type,
-                    'created_at' => $this->created_at,
-                ]))->create();
-                if(0  == $theDataOfstockDateModel['status']){
-                    $database->pdo->rollBack();
-                    return $theDataOfstockDateModel;
-                }
-                
-            }
-
+/*
             $sql = " SET `stock_id`=:stock_id, 
             `stock_price`=:stock_price, 
             `stock_deal_total`=:stock_deal_total,
@@ -265,8 +224,82 @@ class StockDetailModel extends StockModelBase
             $sth->bindParam(':volume', $this->volume, \PDO::PARAM_INT);
             $sth->bindParam(':amount', $this->amount, \PDO::PARAM_INT);
             $sth->bindParam(':stock_detail_remark', $this->stock_detail_remark, \PDO::PARAM_STR);
+*/
+
+            $lastInsertId = $database->insert(static::tableName(), [
+                'stock_id' => $stock_id,
+                'stock_price' => $this->stock_price,
+                'stock_deal_total' => $stock_deal_total,
+                'stock_type' => $type,
+                'stock_number' => $number,
+                'stock_date_at' => $date_and_time[0],
+                'stock_time_at' => $date_and_time[1],
+                'created_at' => $this->created_at,
+                'open' => $this->open,
+                'close' => $this->close,
+                'lup' => $this->lup,
+                'ldown' => $this->ldown,
+                'highest' => $this->highest,
+                'lowest' => $this->lowest,
+                'average' => $this->average,
+                'change' => $this->change,
+                'amplitude' => $this->amplitude,
+                'volume' => $this->volume,
+                'amount' => $this->amount,
+                'stock_detail_remark' => $this->stock_detail_remark,
+            ]);
+
+
             
-            if($sth->execute()){
+            // if($sth->execute()){
+            if($lastInsertId){
+                if($type > 0){
+                    if(1 == $type){// 买入时
+                        $number += $stock_deal_total; 
+                        $sthStockModel  = $database->pdo->prepare("UPDATE ".StockModel::tableName() ." SET 
+                        `bought`=:bought 
+                        WHERE `stock_id`=:stock_id");
+                        $sthStockModel->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
+                        $sthStockModel->bindParam(':bought', $this->stock_price, \PDO::PARAM_INT);
+                        $sthStockModel->execute();
+
+                    }else if(2 == $type) {// 卖出时 
+                        $number -= $stock_deal_total;
+                        if($number < 0){//检查剩余股票数量是否够卖
+                            $data['status'] = 0;
+                            $data['message'] = "剩股票数量不够";
+                            return $data;
+                        } elseif (0 == $number) {// 清仓时
+                            static::setGone($this->stock_id, $date_and_time[0]);
+                        }
+                    } else {
+                        return false;
+                    }
+        
+                    if(!StockModel::setStockNumber($stock_id, $number)){ // 
+                        $database->pdo->rollBack();
+                        $data['status'] = 0;
+                        $data['message'] = "stock表更新stock_number时失败";
+                        return $data;
+                    }
+
+                    // 交易历史
+                    $theDataOfstockDateModel = (new StockHistoryModel($stock_id, [
+                        'stock_price' => $this->stock_price,
+                        'stock_detail_id' => $lastInsertId,
+                        'stock_deal_total' => $this->stock_deal_total,
+                        'stock_type' => $type,
+                        'created_at' => $this->created_at,
+                        'date_at' => $date_and_time[0],
+                    ]))->create();
+                    if(0  == $theDataOfstockDateModel['status']){
+                        $database->pdo->rollBack();
+                        return $theDataOfstockDateModel;
+                    }
+                    
+                }
+
+
                 $query = StockDateModel::getByIdAndDate($stock_id, $date_and_time[0]);
                 
                 $stockDateModel = new StockDateModel($stock_id, $date_and_time[0], $this->created_at, [

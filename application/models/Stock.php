@@ -6,7 +6,7 @@ use base\model\StockModelBase;
 class StockModel extends StockModelBase
 {
 
-    private $stock_code, $stock_name,  $stock_remark, $updated_at;
+    private $stock_code, $stock_name,  $stock_remark, $updated_at, $stock_cost;
 
     public function __construct($stock_id, $stock_code, $stock_name, $data)
     {
@@ -15,6 +15,7 @@ class StockModel extends StockModelBase
         $this->stock_name = $stock_name;
         $this->stock_remark = $data['stock_remark'] ?? "";
         $this->updated_at = $data['updated_at'] ?? null;
+        $this->stock_cost = $data['stock_cost'];
 
     }
 
@@ -131,29 +132,7 @@ class StockModel extends StockModelBase
         
     }
 
-    /**
-     * @author: lhh
-     * 创建日期：2024-12-10
-     * 修改日期：2024-12-10
-     * 名称： setCost
-     * 功能：修改股票成本
-     * 说明：
-     * 注意：
-     * @param $id
-     * @return mixed
-     */
-    public static function setCost($stock_id, $cost=null) {
-        if('' == $cost) $cost = null;
-        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET cost=:cost WHERE stock_id = :stock_id limit 1");
-        $sth->bindParam(':stock_id', $stock_id, \PDO::PARAM_STR);
-        $sth->bindParam(':cost', $cost, \PDO::PARAM_INT);
-        if($sth->execute()){
-            return true;
-        }
 
-        return false;
-        
-    }
 
     /**
      * @author: lhh
@@ -226,6 +205,34 @@ class StockModel extends StockModelBase
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
+        }else{
+            $data['status'] = 0;
+            $data['message'] = $sth->errorInfo();
+        }
+        return $data;
+    }
+
+    /**
+     * @author: lhh
+     * 创建日期：2025-6-27
+     * 修改日期：2025-6-27
+     * 名称： edit
+     * 功能：
+     * 说明：
+     * 注意：
+     * @return mixed
+     */
+    public function edit() {
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET stock_code=:stock_code, stock_name=:stock_name, cost=:stock_cost, stock_remark=:stock_remark WHERE stock_id=:stock_id");
+        $sth->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_code', $this->stock_code, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_name', $this->stock_name, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_remark', $this->stock_remark, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_cost', $this->stock_cost, \PDO::PARAM_INT);
+        if($sth->execute()){
+            $data['status'] = 1;
+            $data['message'] = '修改成功';
+            StockHistoryModel::setCost($this->stock_id, $this->stock_cost);
         }else{
             $data['status'] = 0;
             $data['message'] = $sth->errorInfo();
