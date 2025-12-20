@@ -29,7 +29,7 @@ class UrlModel
 
     public function create() {
         $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET sorts_id=:sid, name=:name, url=:url, info=:info");
-        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_INT);
+        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_STR);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
         $sth->bindParam(':url', $this->url, \PDO::PARAM_STR);
         $sth->bindParam(':info', $this->info, \PDO::PARAM_STR);
@@ -45,8 +45,8 @@ class UrlModel
 
     public function edit($id) {
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET sorts_id=:sid, name=:name, url=:url, info=:info WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
+        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_STR);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
         $sth->bindParam(':url', $this->url, \PDO::PARAM_STR);
         $sth->bindParam(':info', $this->info, \PDO::PARAM_STR);
@@ -62,7 +62,7 @@ class UrlModel
 
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName() ." WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '删除成功';

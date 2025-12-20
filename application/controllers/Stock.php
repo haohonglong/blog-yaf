@@ -4,7 +4,7 @@ use Yaf\Registry;
 
 class StockController extends ControllerBase {
 
-	private function putTheDataToTheStockDetailModel($stock_id, $stock_code, $stock_name, $data){
+	private function putTheDataToTheStockDetailModel($userid, $stock_id, $stock_code, $stock_name, $data){
 		
 		if(0 == $data['open']){
 			$result['status'] = 3;
@@ -42,7 +42,7 @@ class StockController extends ControllerBase {
 		$data['stock_deal_total'] = $data['stock_deal_total'] ?? 0;
 		$data['stock_detail_remark'] = $data['stock_detail_remark'] ?? "";
 
-		$StockDetailModel = new StockDetailModel($stock_id, $data);
+		$StockDetailModel = new StockDetailModel($userid, $stock_id, $data);
 		$data2 = $StockDetailModel->create();
 		switch ($data2['status']) {
 			case 0:
@@ -119,7 +119,8 @@ class StockController extends ControllerBase {
 		];
 		$params_str = http_build_query($params);
 		$url = 'https://gushitong.baidu.com/opendata?'. $params_str;
-		// echo $url;exit;
+		// var_dump($url);
+		// file_put_contents(APPLICATION_PATH . '/application/data/gushitong_url.txt', $url . "\n", FILE_APPEND);
 
 		$curl = curl_init();
 
@@ -225,7 +226,7 @@ class StockController extends ControllerBase {
 
 		return $result;
 	}
-
+/*
 	private function feach2($item){
 		
 		$result = [];
@@ -357,11 +358,14 @@ class StockController extends ControllerBase {
 		return $result;
 	}
 
-
+*/
 	public function getProgressAction(){
 		header("X-Accel-Buffering: no");
 		header("Content-Type: text/event-stream");
 		header("Cache-Control: no-cache");
+		$progress_id = $this->getRequest()->getQuery("progress_id", "123");
+		$progress_id = "progress:{$progress_id}";
+
 
 		$redis = Registry::get('redis');
 		//发送消息
@@ -370,8 +374,9 @@ class StockController extends ControllerBase {
 		try {
 			while($progress)
 			{
-				// sleep(1);
-				$progress = (int)$redis->get("progress");
+				usleep(10000); // 0.01秒
+
+				$progress = (int)$redis->get($progress_id);
 				
 				// $c = "event:" . PHP_EOL; //定义事件
 				$c = "data: " . $progress . PHP_EOL; //推送内容
@@ -381,15 +386,18 @@ class StockController extends ControllerBase {
 					ob_end_flush();
 				}
 				flush();
-				if ( connection_aborted() ) break;
+				if (connection_aborted()) break;
+            	if ($progress >= 100 || $progress == 0) break;
 				
 			}
+			
 		} catch (Exception $e) {
 			$data=[];
 			$data['status'] = 1;
 			$data['message'] = $e->getMessage();
 			echo json_encode($data, JSON_UNESCAPED_UNICODE);
-			exit;
+		} finally {
+			$redis->del($progress_id);
 		}
 		
 		
@@ -398,29 +406,6 @@ class StockController extends ControllerBase {
 	}
 
 
-	public function setAutoAction(){
-		$time = $this->getRequest()->getQuery("time", 60);
-		$redis = Registry::get('redis');
-		$redis->set('auto_feach_stocks', 1);
-		$redis->set('auto_feach_stocks_delaytime', $time);
-		$data['status'] = 0;
-		$data['message'] = "后台自动获取数据已开启";
-		echo json_encode($data, JSON_UNESCAPED_UNICODE);
-		exit;
-
-	}
-
-	public function stopAutoAction(){
-		$redis = Registry::get('redis');
-		$redis->set('auto_feach_stocks', 0);
-
-		$data['status'] = 0;
-		$data['message'] = "后台自动获取数据已关闭";
-		echo json_encode($data, JSON_UNESCAPED_UNICODE);
-		exit;
-		
-	}
-
 	
 
 	/**
@@ -428,91 +413,102 @@ class StockController extends ControllerBase {
 	 */
 	public function feachAction(){
 		$datas = [];
-		$stock_id = $this->getRequest()->getQuery("stock_id", null);
-		$way = $this->getRequest()->getQuery("way", '1');
+		$userid = $this->getRequest()->getPost("userid", 1);
+		$stock_id = $this->getRequest()->getPost("stock_id", null);
+		$progress_id = $this->getRequest()->getPost("progress_id", "123");
+		$progress_id = "progress:{$progress_id}";
+		
+		$way = $this->getRequest()->getPost("way", '1');
 		if(isset($stock_id) && !empty($stock_id)){
 			$total = 1;
 			$one = StockModel::getLastOneByStockId($stock_id);
-			switch ($way) {
-				case '2':
-					$data = $this->feach2($one);
-					break;
-				case '3':
-					$data = $this->feach3($one);
-					break;
+			// switch ($way) {
+			// 	case '2':
+			// 		$data = $this->feach2($one);
+			// 		break;
+			// 	case '3':
+			// 		$data = $this->feach3($one);
+			// 		break;
 				
-				default:
-					$data = $this->feach($one);
-
-			}
+			// 	default:
+				
+			// }
+			$data = $this->feach($one);
 
 			if(!isset($data['status'])){
-				$data = $this->putTheDataToTheStockDetailModel($stock_id, $one['stock_code'], $one['stock_name'], $data);
+				$data = $this->putTheDataToTheStockDetailModel($userid, $stock_id, $one['stock_code'], $one['stock_name'], $data);
 			}
 			
 			$datas['datas'][] = $data;
 		} else {
 			$redis = Registry::get('redis');
-			do {
-				try {
-					$total = 0;
-					$list = StockModel::getList();
-					$i = 0;
-					$len = count($list);
-					
-					foreach ($list as $item) {
-						$redis->set('progress', intval((++$i)/$len * 100));
-	
-						switch ($way) {
-							case '2':
-								$data = $this->feach2($item);
-								break;
-							case '3':
-								$data = $this->feach3($item);
-								break;
-							
-							default:
-								$data = $this->feach($item);
-		
-						}
-	
-						if(!isset($data['status'])){
-							$data = $this->putTheDataToTheStockDetailModel($item['stock_id'], $item['stock_code'], $item['stock_name'], $data);
-						}
-	
+			
+			try {
+				$total = 0;
+				$list = StockModel::getAllList();
+				$i = 0;
+				$len = count($list);
+				
+				foreach ($list as $item) {
+					$redis->set($progress_id, intval((++$i)/$len * 100));
+
+					// switch ($way) {
+					// 	case '2':
+					// 		$data = $this->feach2($item);
+					// 		break;
+					// 	case '3':
+					// 		$data = $this->feach3($item);
+					// 		break;
 						
-		
-						$datas['datas'][] = $data;
+					// 	default:
 						
-						if(2 == $data['status']){
-							break;
-						}
-						if(3 == $data['status']){
-							continue;
-						}
-						$total++;
-	
-						
-						
-		
+					// }
+
+					$data = $this->feach($item);
+
+					if(!isset($data['status'])){
+						$data = $this->putTheDataToTheStockDetailModel($userid, $item['stock_id'], $item['stock_code'], $item['stock_name'], $data);
 					}
-					$datas['total'] = $total;
+
 					
-				} catch (Exception $e) {
-					$data=[];
-					$data['status'] = 1;
-					$data['message'] = $e->getMessage();
+	
 					$datas['datas'][] = $data;
-					echo json_encode($datas, JSON_UNESCAPED_UNICODE);
-					exit;
 					
-				} finally {
-					$redis->set('progress', 0);
+					if(2 == $data['status']){
+						break;
+					}
+					if(3 == $data['status']){
+						continue;
+					}
+					$total++;
+
+					
+					
+	
 				}
+				$datas['total'] = $total;
+				
+			} catch (Exception $e) {
+				$redis->del($progress_id);
+
+				$data=[];
+				$data['status'] = 1;
+				$data['message'] = $e->getMessage();
+				$datas['datas'][] = $data;
+				echo json_encode($datas, JSON_UNESCAPED_UNICODE);
+				exit;
+				
+			} finally {
+				$redis->set($progress_id, 0);
+				$redis->expire($progress_id, 60); // 1分钟后自动删除
+				
+			}
 
 			// 	sleep($redis->get('auto_feach_stocks_delaytime'));
 
-			} while (0);
+			
+
+			
 
 			
 			
@@ -528,7 +524,21 @@ class StockController extends ControllerBase {
 
 
 	public function indexAction() {
-        $data = StockModel::getList();
+		$userid = $this->getRequest()->getPost("userid", 1);
+		$size = $this->getRequest()->getPost("size", 1);
+		$rows = $this->getRequest()->getPost("rows", 0);
+
+        $query = StockModel::getList($userid, $size, $rows);
+		
+		if($query){
+            $data['status'] = 0;
+            $data['data'] = $query;
+            $data['message'] = '获取成功';
+        }else{
+            $data['status'] = 1;
+            $data['message'] = "没有数据";
+        }
+
         $json = json_encode($data,JSON_UNESCAPED_UNICODE);
         echo $json;
         exit;
@@ -536,16 +546,21 @@ class StockController extends ControllerBase {
 	
 	public function addAction() {
 		$errors = [];
+		$userid = $this->getRequest()->getPost("userid", 1);
 		$stock_id = $this->getRequest()->getPost("stock_id", null);
 		$stock_code = $this->getRequest()->getPost("stock_code", null);
 		$stock_name = $this->getRequest()->getPost("stock_name", null);
 		$stock_remark = $this->getRequest()->getPost("stock_remark", "");
+		$flag = $this->getRequest()->getPost("flag", 0);
+		$tax = $this->getRequest()->getPost("tax", 5.00);
 		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
 		if(!isset($stock_code) || empty($stock_code)) { $errors["stock_code"] = "stock_code 参数是必须的"; }
 		if(!isset($stock_name) || empty($stock_name)) { $errors["stock_name"] = "stock_name 参数是必须的"; }
 		if(empty($errors)) {
-			$Stock = new StockModel($stock_id, $stock_code, $stock_name, [
-				'stock_remark' => $stock_remark
+			$Stock = new StockModel($userid, $stock_id, $stock_code, $stock_name, [
+				'stock_remark' => $stock_remark,
+				'flag' => $flag,
+				'tax' => $tax,
 			]);
 			$data = $Stock->create();
 		} else {
@@ -560,18 +575,21 @@ class StockController extends ControllerBase {
 
 	public function editAction() {
 		$errors = [];
+		$userid = $this->getRequest()->getPost("userid", 1);
 		$stock_id = $this->getRequest()->getPost("stock_id", null);
 		$stock_code = $this->getRequest()->getPost("stock_code", null);
 		$stock_name = $this->getRequest()->getPost("stock_name", null);
 		$stock_cost   = $this->getRequest()->getPost("stock_cost", null);
 		$stock_remark = $this->getRequest()->getPost("stock_remark", "");
+		$tax = $this->getRequest()->getPost("tax", 5.00);
 		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
 		if(!isset($stock_code) || empty($stock_code)) { $errors["stock_code"] = "stock_code 参数是必须的"; }
 		if(!isset($stock_name) || empty($stock_name)) { $errors["stock_name"] = "stock_name 参数是必须的"; }
 		if(empty($errors)) {
-			$Stock = new StockModel($stock_id, $stock_code, $stock_name, [
+			$Stock = new StockModel($userid, $stock_id, $stock_code, $stock_name, [
 				'stock_remark' => $stock_remark,
 				'stock_cost' => $stock_cost,
+				'tax' => $tax,
 			]);
 			$data = $Stock->edit();
 		} else {
@@ -585,6 +603,7 @@ class StockController extends ControllerBase {
 	}
 
 	public function deleteAction() {
+		$userid = $this->getRequest()->getQuery("userid", 0);
         $message = "";
         $stock_id   = $this->getRequest()->getQuery("stock_id", "");
         if(empty($stock_id)){
@@ -592,7 +611,7 @@ class StockController extends ControllerBase {
         }
         $data = [];
         if(empty($message)){
-            $data = StockModel::delete($stock_id);
+            $data = StockModel::delete($userid, $stock_id);
         }else{
             $data['status'] = 1;
             $data['message'] = $message;
@@ -629,9 +648,10 @@ class StockController extends ControllerBase {
 
 
 	public function searchAction(){
+		$userid = $this->getRequest()->getQuery("userid", 1);
 		$key = $this->getRequest()->getQuery("key", "");
 		$value = $this->getRequest()->getQuery("value", "");
-		$query = StockModel::search($key, $value);
+		$query = StockModel::search($key, $value, $userid);
 		
 		echo json_encode($query,JSON_UNESCAPED_UNICODE);
 		exit;
@@ -641,6 +661,7 @@ class StockController extends ControllerBase {
 
 	public function tradeAction(){
 		$errors = [];
+		$userid = $this->getRequest()->getPost("userid", 1);
 		$stock_id = $this->getRequest()->getPost("stock_id", null);
 		$stock_type = (int)$this->getRequest()->getPost("stock_type", 0);
 		$stock_price = $this->getRequest()->getPost("stock_price", 0);
@@ -653,7 +674,7 @@ class StockController extends ControllerBase {
 		$data = $this->feach($one);
 		if(!isset($data['status'])){
 			$data['stock_type'] = $stock_type;
-			$resul = $this->putTheDataToTheStockDetailModel($stock_id, $one['stock_code'], $one['stock_name'], $data);
+			$resul = $this->putTheDataToTheStockDetailModel($userid, $stock_id, $one['stock_code'], $one['stock_name'], $data);
 
 		}
 	}

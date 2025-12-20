@@ -189,17 +189,17 @@ class GoodsModel
             code = :code
             WHERE id=:id
             ");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-        $sth->bindParam(':update_at', $data['update_at'], \PDO::PARAM_INT);
-        $sth->bindParam(':final_price', $data['final_price'], \PDO::PARAM_INT);
-        $sth->bindParam(':single_price', $data['single_price'], \PDO::PARAM_INT);
-        $sth->bindParam(':number', $data['number'], \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
+        $sth->bindParam(':update_at', $data['update_at'], \PDO::PARAM_STR);
+        $sth->bindParam(':final_price', $data['final_price'], \PDO::PARAM_STR);
+        $sth->bindParam(':single_price', $data['single_price'], \PDO::PARAM_STR);
+        $sth->bindParam(':number', $data['number'], \PDO::PARAM_STR);
         $sth->bindParam(':weight', $data['weight'], \PDO::PARAM_STR);
-        $sth->bindParam(':shop_id', $data['shop_id'], \PDO::PARAM_INT);
+        $sth->bindParam(':shop_id', $data['shop_id'], \PDO::PARAM_STR);
         $sth->bindParam(':bill_id', $data['bill_id'], \PDO::PARAM_STR);
         $sth->bindParam(':code', $data['code'], \PDO::PARAM_STR);
-        $sth->bindParam(':goodsname_id', $data['goodsname_id'], \PDO::PARAM_INT);
-        $sth->bindParam(':unit_id', $data['unit_id'], \PDO::PARAM_INT);
+        $sth->bindParam(':goodsname_id', $data['goodsname_id'], \PDO::PARAM_STR);
+        $sth->bindParam(':unit_id', $data['unit_id'], \PDO::PARAM_STR);
         $data = [];
         if($sth->execute()){
             $data['status'] = 1;
@@ -230,7 +230,7 @@ class GoodsModel
             $sth->bindParam(':ids', implode(',',$id), \PDO::PARAM_STR);
         } else {
             $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName() ." WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+            $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         }
         
         if($sth->execute()){

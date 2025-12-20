@@ -18,7 +18,7 @@ class StockDateModel extends StockModelBase
 
     public static function tableName()
     {
-        return 'stock_date';
+        return 'stock_daily';
     }
 
 
@@ -73,19 +73,19 @@ class StockDateModel extends StockModelBase
         `updated_at`=:updated_at
         WHERE `stock_id`=:stock_id AND `stock_date_at`=:stock_date_at");
         $sth->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
-        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_INT);
+        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_STR);
         $sth->bindParam(':stock_date_at', $this->stock_date_at, \PDO::PARAM_STR);
-        $sth->bindParam(':open', $this->open, \PDO::PARAM_INT);
-        $sth->bindParam(':close', $this->close, \PDO::PARAM_INT);
-        $sth->bindParam(':lup', $this->lup, \PDO::PARAM_INT);
-        $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_INT);
-        $sth->bindParam(':highest', $this->highest, \PDO::PARAM_INT);
-        $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_INT);
-        $sth->bindParam(':average', $this->average, \PDO::PARAM_INT);
-        $sth->bindParam(':change', $this->change, \PDO::PARAM_INT);
-        $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_INT);
-        $sth->bindParam(':volume', $this->volume, \PDO::PARAM_INT);
-        $sth->bindParam(':amount', $this->amount, \PDO::PARAM_INT);
+        $sth->bindParam(':open', $this->open, \PDO::PARAM_STR);
+        $sth->bindParam(':close', $this->close, \PDO::PARAM_STR);
+        $sth->bindParam(':lup', $this->lup, \PDO::PARAM_STR);
+        $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_STR);
+        $sth->bindParam(':highest', $this->highest, \PDO::PARAM_STR);
+        $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_STR);
+        $sth->bindParam(':average', $this->average, \PDO::PARAM_STR);
+        $sth->bindParam(':change', $this->change, \PDO::PARAM_STR);
+        $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_STR);
+        $sth->bindParam(':volume', $this->volume, \PDO::PARAM_STR);
+        $sth->bindParam(':amount', $this->amount, \PDO::PARAM_STR);
         $sth->bindParam(':updated_at', $this->created_at, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
@@ -128,18 +128,18 @@ class StockDateModel extends StockModelBase
         `amplitude`=:amplitude");
         $sth->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
         $sth->bindParam(':stock_date_at', $this->stock_date_at, \PDO::PARAM_STR);
-        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_INT);
-        $sth->bindParam(':open', $this->open, \PDO::PARAM_INT);
-        $sth->bindParam(':close', $this->close, \PDO::PARAM_INT);
-        $sth->bindParam(':lup', $this->lup, \PDO::PARAM_INT);
-        $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_INT);
-        $sth->bindParam(':highest', $this->highest, \PDO::PARAM_INT);
-        $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_INT);
-        $sth->bindParam(':average', $this->average, \PDO::PARAM_INT);
-        $sth->bindParam(':change', $this->change, \PDO::PARAM_INT);
-        $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_INT);
-        $sth->bindParam(':volume', $this->volume, \PDO::PARAM_INT);
-        $sth->bindParam(':amount', $this->amount, \PDO::PARAM_INT);
+        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_STR);
+        $sth->bindParam(':open', $this->open, \PDO::PARAM_STR);
+        $sth->bindParam(':close', $this->close, \PDO::PARAM_STR);
+        $sth->bindParam(':lup', $this->lup, \PDO::PARAM_STR);
+        $sth->bindParam(':ldown', $this->ldown, \PDO::PARAM_STR);
+        $sth->bindParam(':highest', $this->highest, \PDO::PARAM_STR);
+        $sth->bindParam(':lowest', $this->lowest, \PDO::PARAM_STR);
+        $sth->bindParam(':average', $this->average, \PDO::PARAM_STR);
+        $sth->bindParam(':change', $this->change, \PDO::PARAM_STR);
+        $sth->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_STR);
+        $sth->bindParam(':volume', $this->volume, \PDO::PARAM_STR);
+        $sth->bindParam(':amount', $this->amount, \PDO::PARAM_STR);
         $sth->bindParam(':created_at', $this->created_at, \PDO::PARAM_STR);
         $sth->bindParam(':updated_at', $this->created_at, \PDO::PARAM_STR);
 
@@ -148,7 +148,11 @@ class StockDateModel extends StockModelBase
             $data['message'] = '添加成功';
         }else{
             $data['status'] = 0;
-            $data['message'] = $sth->errorInfo();
+            $message = $sth->errorInfo();
+            if(1062 == $sth->errorInfo()[1]){
+                $message = "数据已存在，避免重复插入";
+            }
+            $data['message'] = $message;
         }
         return $data;
     }

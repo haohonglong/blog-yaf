@@ -57,8 +57,8 @@ class Bootstrap extends Bootstrap_Abstract {
             'username' => $db->params->username,
             'password' => $db->params->password,
             'prefix' => $db->params->prefix,
-            'logging' => $db->params->log,
-            'charset' => $db->params->charset
+            'logging' => $db->params->logging,
+            'charset' => $db->params->charset,
         ];
         Registry::set('db', new \Medoo\Medoo($option));
 
@@ -75,11 +75,25 @@ class Bootstrap extends Bootstrap_Abstract {
             'database' => $db->database,
         ];
 
-        $redis = new Redis();
-        $redis->connect($option['host'], $option['port']);
-        $redis->auth($option['password']);
+        try {
+            $redis = new Redis();
+            $redis->connect($option['host'], $option['port']);
+            $redis->auth($option['password']);
 
-        Registry::set('redis', $redis);
+            Registry::set('redis', $redis);
+        } catch (RedisException $e) {
+            // 开发环境：记录详细错误
+            error_log('Redis连接错误: ' . $e->getMessage());
+            
+            // 开发环境可以回退到其他方案
+            // 比如使用数组模拟Redis，或者显示友好错误页面
+            if (defined('APPLICATION_ENV') && APPLICATION_ENV == 'development') {
+                die('Redis连接失败: ' . $e->getMessage() . 
+                    '<br>请检查Redis服务是否运行在 192.168.3.10:6379');
+            }
+        }
+
+        
 
         
     }

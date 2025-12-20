@@ -88,7 +88,7 @@ class Video2Model
      */
     public function edit($id) {
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET src=:src WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         $sth->bindParam(':src', $this->src, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
@@ -102,7 +102,7 @@ class Video2Model
 
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName()." WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '删除成功';

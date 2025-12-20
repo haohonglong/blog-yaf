@@ -80,7 +80,7 @@ class SortsModel
 
     public function create() {
         $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName()." SET name=:name, pid=:pid, code=:code");
-        $sth->bindParam(':pid', $this->pid, \PDO::PARAM_INT);
+        $sth->bindParam(':pid', $this->pid, \PDO::PARAM_STR);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
         $sth->bindParam(':code', $this->code, \PDO::PARAM_STR);
         if($sth->execute()){
@@ -96,12 +96,12 @@ class SortsModel
     public function edit($id) {
         if(is_int(strpos($id, ','))){ // 批处理
             $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET pid=:pid WHERE id IN(:id)");
-            $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-            $sth->bindParam(':pid', $this->pid, \PDO::PARAM_INT);
+            $sth->bindParam(':id', $id, \PDO::PARAM_STR);
+            $sth->bindParam(':pid', $this->pid, \PDO::PARAM_STR);
         } else { 
             $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET pid=:pid, name=:name, code=:code WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-            $sth->bindParam(':pid', $this->pid, \PDO::PARAM_INT);
+            $sth->bindParam(':id', $id, \PDO::PARAM_STR);
+            $sth->bindParam(':pid', $this->pid, \PDO::PARAM_STR);
             $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
             $sth->bindParam(':code', $this->code, \PDO::PARAM_STR);
             
@@ -133,13 +133,13 @@ class SortsModel
             $database->pdo->beginTransaction();
             
             $sth  = $database->pdo->prepare("DELETE FROM ".static::tableName()." WHERE id = :id limit 1");
-            $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+            $sth->bindParam(':id', $id, \PDO::PARAM_STR);
             if($sth->execute()){
                 $data['status'] = 1;
                 $data['message'] = '删除成功';
                 if($force > 0){
                     $url  = $database->pdo->prepare("DELETE FROM ".UrlModel::tableName()." WHERE sorts_id = :id");
-                    $url->bindParam(':id', $id, \PDO::PARAM_INT);
+                    $url->bindParam(':id', $id, \PDO::PARAM_STR);
                     if($url->execute()){
                         $database->pdo->commit();
                         $data['status'] = 1;

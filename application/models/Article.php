@@ -87,8 +87,8 @@ class ArticleModel
 
     public function create() {
         $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET user_id=:userid, sorts_id=:sid, title=:title, content=:content");
-        $sth->bindParam(':userid', $this->userid, \PDO::PARAM_INT);
-        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_INT);
+        $sth->bindParam(':userid', $this->userid, \PDO::PARAM_STR);
+        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_STR);
         $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
         if($sth->execute()){
@@ -103,9 +103,9 @@ class ArticleModel
 
     public function edit($id) {
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET user_id=:userid, sorts_id=:sid, title=:title, content=:content WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
-        $sth->bindParam(':userid', $this->userid, \PDO::PARAM_INT);
-        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
+        $sth->bindParam(':userid', $this->userid, \PDO::PARAM_STR);
+        $sth->bindParam(':sid', $this->sid, \PDO::PARAM_STR);
         $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
         if($sth->execute()){
@@ -120,7 +120,7 @@ class ArticleModel
 
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName() ." WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '删除成功';

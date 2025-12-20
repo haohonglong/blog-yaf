@@ -6,8 +6,9 @@ class StockDetailController extends ControllerBase {
 	public function indexAction() {
 		$stock_id   = $this->getRequest()->getQuery("stock_id", null);
 		$size   = $this->getRequest()->getQuery("size", 1);
+		$rows   = $this->getRequest()->getQuery("rows", 0);
 		
-        $query = StockDetailModel::getList($stock_id, $size);
+        $query = StockDetailModel::getList($stock_id, $size, $rows);
 		if($query){
             $data['status'] = 0;
             $data['data'] = $query;
@@ -23,6 +24,7 @@ class StockDetailController extends ControllerBase {
 	
 	public function addAction() {
 		$errors = [];
+		$userid = $this->getRequest()->getPost("userid", 1);
 		$stock_id = $this->getRequest()->getPost("stock_id", null);
 		$stock_type = (int)$this->getRequest()->getPost("stock_type", 0);
 		$stock_price = $this->getRequest()->getPost("stock_price", 0);
@@ -63,7 +65,7 @@ class StockDetailController extends ControllerBase {
 		}
 
 		if(empty($errors)) {
-			$Stock = new StockDetailModel($stock_id, [
+			$Stock = new StockDetailModel($userid, $stock_id, [
 				'stock_price' => $stock_price,
 				'stock_type' => $stock_type,
 				'created_at' => $created_at,

@@ -6,16 +6,19 @@ use base\model\StockModelBase;
 class StockHistoryModel extends StockModelBase
 {
 
-    private $stock_deal_total, $stock_type, $created_at, $stock_detail_id;
+    private $stock_deal_total, $stock_type, $created_at, $stock_detail_id, $tax, $stock_remain, $stock_cost;
 
     public function __construct($stock_id, $data)
     {
         parent::__construct($stock_id, $data);
         $this->stock_deal_total = $data['stock_deal_total'] ?? 0;
+        $this->stock_remain = $data['stock_remain'] ?? 0;
         $this->stock_type = $data['stock_type'] ?? 1;
         $this->created_at = $data['created_at'] ?? date("Y-m-d H:i:s");
         $this->stock_detail_id = $data['stock_detail_id'];
         $this->date_at = $data['date_at'];
+        $this->tax = $data['tax'] ?? 5.00;
+        $this->stock_cost = $data['stock_cost'] ?? $this->stock_price;
 
     }
 
@@ -49,21 +52,27 @@ class StockHistoryModel extends StockModelBase
     /**
      * @author: lhh
      * 创建日期：2025-6-28
-     * 修改日期：2025-6-28
+     * 修改日期：2025-8-17
      * 名称： setCost
-     * 功能：
-     * 说明：
+     * 功能：设定成本价
+     * 说明：只操作一条最近一次插入的那条数据
      * 注意：
      * @return mixed
      */
-    public static function setCost($stock_id, $cost) {
-        $date = date("Y-m-d");
-        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET cost=:cost WHERE stock_id=:stock_id AND date_at=:date_at");
+    public static function setCost($stock_id, $cost, $tax=5.00, $updated_at) {
+        $updated_at = $updated_at ?? date("Y-m-d H:i:s");
+        
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET cost=:cost, tax=:tax, updated_at=:updated_at WHERE (stock_id=:stock_id) ORDER BY id DESC LIMIT 1");
         $sth->bindParam(':stock_id', $stock_id, \PDO::PARAM_STR);
-        $sth->bindParam(':cost', $cost, \PDO::PARAM_INT);
-        $sth->bindParam(':date_at', $data, \PDO::PARAM_STR);
+        $sth->bindParam(':cost', $cost, \PDO::PARAM_STR);
+        $sth->bindParam(':tax', $tax, \PDO::PARAM_STR);
+        $sth->bindParam(':updated_at', $updated_at, \PDO::PARAM_STR);
         if($sth->execute()){
-            return true;
+            $data['status'] = 1;
+            $data['message'] = '修改账单的成本价成功';
+        }else{
+            $data['status'] = 0;
+            $data['message'] = $sth->errorInfo() . " in " . __FILE__ . " on line " . __LINE__;
         }
         return $data;
     }
@@ -77,7 +86,7 @@ class StockHistoryModel extends StockModelBase
     /**
      * @author: lhh
      * 创建日期：2024-12-26
-     * 修改日期：2024-12-26
+     * 修改日期：2025-8-17
      * 名称： create
      * 功能：
      * 说明：
@@ -85,18 +94,23 @@ class StockHistoryModel extends StockModelBase
      * @return mixed
      */
     public function create() {
-        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET stock_id=:stock_id, stock_price=:stock_price, stock_deal_total=:stock_deal_total, stock_type=:stock_type, created_at=:created_at");
+        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET stock_id=:stock_id, stock_detail_id=:stock_detail_id, stock_price=:stock_price, stock_deal_total=:stock_deal_total, stock_remain=:stock_remain, stock_type=:stock_type, created_at=:created_at, updated_at=:created_at, tax=:tax, cost=:cost");
         $sth->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
-        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_INT);
-        $sth->bindParam(':stock_deal_total', $this->stock_deal_total, \PDO::PARAM_INT);
-        $sth->bindParam(':stock_type', $this->stock_type, \PDO::PARAM_INT);
+        $sth->bindParam(':stock_detail_id', $this->stock_detail_id, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_STR);
+        $sth->bindParam(':cost', $this->stock_cost, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_deal_total', $this->stock_deal_total, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_remain', $this->stock_remain, \PDO::PARAM_STR);
+        $sth->bindParam(':tax', $this->tax, \PDO::PARAM_STR);
+        $sth->bindParam(':stock_type', $this->stock_type, \PDO::PARAM_STR);
         $sth->bindParam(':created_at', $this->created_at, \PDO::PARAM_STR);
+        
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
         }else{
             $data['status'] = 0;
-            $data['message'] = $sth->errorInfo();
+            $data['message'] = $sth->errorInfo() . " in " . __FILE__ . " on line " . __LINE__;
         }
         return $data;
     }

@@ -46,8 +46,8 @@ class DiaryModel
         $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET title=:title, content=:content, created_at=:created_at, updated_at=:updated_at");
         $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
-        $sth->bindParam(':created_at', $today, \PDO::PARAM_INT);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_INT);
+        $sth->bindParam(':created_at', $today, \PDO::PARAM_STR);
+        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
@@ -61,10 +61,10 @@ class DiaryModel
     public function edit($id) {
 		$today = time();
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET title=:title, content=:content, updated_at=:updated_at WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_INT);
+        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '修改成功';
@@ -77,7 +77,7 @@ class DiaryModel
 
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName() ." WHERE id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '删除成功';

@@ -90,8 +90,8 @@ class MindMapsModel
         $sth->bindParam(':thumbnail', $this->thumbnail, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
         $sth->bindParam(':remark', $this->remark, \PDO::PARAM_STR);
-        $sth->bindParam(':created_at', $today, \PDO::PARAM_INT);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_INT);
+        $sth->bindParam(':created_at', $today, \PDO::PARAM_STR);
+        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
@@ -116,10 +116,10 @@ class MindMapsModel
         }
 
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET `key`= :key, `name`=:name, {$columns} `updated_at`=:updated_at WHERE `id`=:id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         $sth->bindParam(':key', $this->key, \PDO::PARAM_STR);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_INT);
+        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
         if(isset($this->thumbnail)) {
             $sth->bindParam(':thumbnail', $this->thumbnail, \PDO::PARAM_STR);
         }
@@ -142,7 +142,7 @@ class MindMapsModel
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET `content`=:content, `updated_at`=:updated_at WHERE `key`=:key limit 1");
         $sth->bindParam(':key', $key, \PDO::PARAM_STR);
         $sth->bindParam(':content', $content, \PDO::PARAM_STR);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_INT);
+        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '修改成功';
@@ -155,7 +155,7 @@ class MindMapsModel
 
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName() ." WHERE `id`=:id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '删除成功';

@@ -93,11 +93,11 @@ class BillsModel
         create_at=:create_at, 
         update_at=:update_at");
 
-        $sth->bindParam(':bill_id', $this->bill_id, \PDO::PARAM_INT);
-        $sth->bindParam(':discount', $this->discount, \PDO::PARAM_INT);
-        $sth->bindParam(':points', $this->points, \PDO::PARAM_INT);
-        $sth->bindParam(':create_at', $this->create_at, \PDO::PARAM_INT);
-        $sth->bindParam(':update_at', $this->create_at, \PDO::PARAM_INT);
+        $sth->bindParam(':bill_id', $this->bill_id, \PDO::PARAM_STR);
+        $sth->bindParam(':discount', $this->discount, \PDO::PARAM_STR);
+        $sth->bindParam(':points', $this->points, \PDO::PARAM_STR);
+        $sth->bindParam(':create_at', $this->create_at, \PDO::PARAM_STR);
+        $sth->bindParam(':update_at', $this->create_at, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
@@ -117,10 +117,10 @@ class BillsModel
         WHERE bill_id=:bill_id
         ");
 
-        $sth->bindParam(':bill_id', $bill_id, \PDO::PARAM_INT);
-        $sth->bindParam(':points', $this->points, \PDO::PARAM_INT);
-        $sth->bindParam(':discount', $this->discount, \PDO::PARAM_INT);
-        $sth->bindParam(':update_at', $this->update_at, \PDO::PARAM_INT);
+        $sth->bindParam(':bill_id', $bill_id, \PDO::PARAM_STR);
+        $sth->bindParam(':points', $this->points, \PDO::PARAM_STR);
+        $sth->bindParam(':discount', $this->discount, \PDO::PARAM_STR);
+        $sth->bindParam(':update_at', $this->update_at, \PDO::PARAM_STR);
 
         if($sth->execute()){
             $data['status'] = 1;
@@ -135,7 +135,7 @@ class BillsModel
     public static function delete($bill_id) {
         if(1 == GoodsModel::deleteByBillId($bill_id)) {
             $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName() ." WHERE bill_id=:bill_id limit 1");
-            $sth->bindParam(':bill_id', $bill_id, \PDO::PARAM_INT);
+            $sth->bindParam(':bill_id', $bill_id, \PDO::PARAM_STR);
             if($sth->execute()){
                 $data['status'] = 1;
                 $data['message'] = '删除成功';

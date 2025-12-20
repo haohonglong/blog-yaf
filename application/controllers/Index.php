@@ -103,8 +103,8 @@ class IndexController extends ControllerBase {
             foreach ($query as $k => $v) {
                 $id = intval($v['id'])+1;
                 $sth = $db->pdo->prepare('update sorts set id=:id where id=:id2');
-                $sth->bindParam(':id', $id, PDO::PARAM_INT);
-                $sth->bindParam(':id2', $v['id'], PDO::PARAM_INT);
+                $sth->bindParam(':id', $id, PDO::PARAM_STR);
+                $sth->bindParam(':id2', $v['id'], PDO::PARAM_STR);
                 $sth->execute();
                 $datas[$v['id']] = $id;
 
@@ -126,13 +126,13 @@ class IndexController extends ControllerBase {
             foreach ($datas as $k => $v) {
                 //url
                 $sth = $db->pdo->prepare('update url set sorts_id=:id where sorts_id=:id2');
-                $sth->bindParam(':id', $v, PDO::PARAM_INT);
-                $sth->bindParam(':id2', $k, PDO::PARAM_INT);
+                $sth->bindParam(':id', $v, PDO::PARAM_STR);
+                $sth->bindParam(':id2', $k, PDO::PARAM_STR);
                 $sth->execute();
 
                 $sth = $db->pdo->prepare('update article set sorts_id=:id where sorts_id=:id2');
-                $sth->bindParam(':id', $v, PDO::PARAM_INT);
-                $sth->bindParam(':id2', $k, PDO::PARAM_INT);
+                $sth->bindParam(':id', $v, PDO::PARAM_STR);
+                $sth->bindParam(':id2', $k, PDO::PARAM_STR);
                 $sth->execute();
             }
             $db->pdo->commit();

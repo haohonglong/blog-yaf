@@ -89,7 +89,7 @@ class UnitModel
      */
     public function edit($id) {
         $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET unit_name=:name WHERE unit_id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
@@ -103,7 +103,7 @@ class UnitModel
 
     public static function delete($id) {
         $sth  = Registry::get('db')->pdo->prepare("DELETE FROM ".static::tableName()." WHERE unit_id = :id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_INT);
+        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '删除成功';
