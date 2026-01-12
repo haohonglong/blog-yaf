@@ -80,25 +80,65 @@ class MindMapsModel
 		return $data;
 	}
 
+    private function check($id=null){
+        $errors = [];
+
+        $key = Registry::get('db')->get(static::tableName(), ["id", "key"], ["key"=>$this->key]);
+        $name = Registry::get('db')->get(static::tableName(), ["id", "name"], ["name"=>$this->name]);
+
+        if(!is_null($id)){
+            if($id != $key["id"] && $key["key"]){
+                $errors["key"] = "key已存了";
+            }
+    
+            if($id != $name["id"] && $name["name"]){
+                $errors["name"] = "名称已存了";
+            }
+
+        }else{
+            if($key["key"]){
+                $errors["key"] = "key已存了";
+            }
+    
+            if($name["name"]){
+                $errors["name"] = "名称已存了";
+            }
+            
+        }
+        
+        return $errors;
+
+    }
+
 
 
 	public function create() {
 		$today = time();
-        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET `key`=:key, `name`=:name, `thumbnail`=:thumbnail, `content`=:content, `remark`=:remark, `created_at`=:created_at, `updated_at`=:updated_at");
-        $sth->bindParam(':key', $this->key, \PDO::PARAM_STR);
-        $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
-        $sth->bindParam(':thumbnail', $this->thumbnail, \PDO::PARAM_STR);
-        $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
-        $sth->bindParam(':remark', $this->remark, \PDO::PARAM_STR);
-        $sth->bindParam(':created_at', $today, \PDO::PARAM_STR);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
-        if($sth->execute()){
-            $data['status'] = 1;
-            $data['message'] = '添加成功';
+        $errors = $this->check();
+
+        if(empty($errors)){
+            $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET `key`=:key, `name`=:name, `thumbnail`=:thumbnail, `content`=:content, `remark`=:remark, `created_at`=:created_at, `updated_at`=:updated_at");
+            $sth->bindParam(':key', $this->key, \PDO::PARAM_STR);
+            $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
+            $sth->bindParam(':thumbnail', $this->thumbnail, \PDO::PARAM_STR);
+            $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
+            $sth->bindParam(':remark', $this->remark, \PDO::PARAM_STR);
+            $sth->bindParam(':created_at', $today, \PDO::PARAM_STR);
+            $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
+            if($sth->execute()){
+                $data['status'] = 1;
+                $data['message'] = '添加成功';
+            }else{
+                $data['status'] = 0;
+                $data['message'] = $sth->errorInfo();
+            }
+
         }else{
             $data['status'] = 0;
-            $data['message'] = $sth->errorInfo();
+            $data['errors'] = $errors;
+            $data['message'] = 'fail';
         }
+
         return $data;
     }
     /**
@@ -106,34 +146,46 @@ class MindMapsModel
      */
     public function edit($id) {
 		$today = time();
-        $columns = "";
-        if(isset($this->thumbnail)) {
-            $columns .= "`thumbnail`=:thumbnail,";
-        }
+        $errors = $this->check($id);
 
-        if(isset($this->remark)) {
-            $columns .= " `remark`=:remark,";
-        }
+        if(empty($errors)){
+            $columns = "";
+            if(isset($this->thumbnail)) {
+                $columns .= "`thumbnail`=:thumbnail,";
+            }
+    
+            if(isset($this->remark)) {
+                $columns .= " `remark`=:remark,";
+            }
+    
+            $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET `key`= :key, `name`=:name, {$columns} `updated_at`=:updated_at WHERE `id`=:id limit 1");
+            $sth->bindParam(':id', $id, \PDO::PARAM_STR);
+            $sth->bindParam(':key', $this->key, \PDO::PARAM_STR);
+            $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
+            $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
+            if(isset($this->thumbnail)) {
+                $sth->bindParam(':thumbnail', $this->thumbnail, \PDO::PARAM_STR);
+            }
+            if(isset($this->remark)) {
+                $sth->bindParam(':remark', $this->remark, \PDO::PARAM_STR);
+            }
+    
+            if($sth->execute()){
+                $data['status'] = 1;
+                $data['message'] = '修改成功';
+            }else{
+                $data['status'] = 0;
+                $data['message'] = $sth->errorInfo();
+            }
 
-        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET `key`= :key, `name`=:name, {$columns} `updated_at`=:updated_at WHERE `id`=:id limit 1");
-        $sth->bindParam(':id', $id, \PDO::PARAM_STR);
-        $sth->bindParam(':key', $this->key, \PDO::PARAM_STR);
-        $sth->bindParam(':name', $this->name, \PDO::PARAM_STR);
-        $sth->bindParam(':updated_at', $today, \PDO::PARAM_STR);
-        if(isset($this->thumbnail)) {
-            $sth->bindParam(':thumbnail', $this->thumbnail, \PDO::PARAM_STR);
-        }
-        if(isset($this->remark)) {
-            $sth->bindParam(':remark', $this->remark, \PDO::PARAM_STR);
-        }
-
-        if($sth->execute()){
-            $data['status'] = 1;
-            $data['message'] = '修改成功';
         }else{
             $data['status'] = 0;
-            $data['message'] = $sth->errorInfo();
+            $data['errors'] = $errors;
+            $data['message'] = 'fail';
+
         }
+
+
         return $data;
     }
 

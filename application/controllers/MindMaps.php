@@ -39,6 +39,7 @@ class MindMapsController extends ControllerBase {
 		if(!isset($key) || empty($key)) { $errors["key"] = "key 参数是必须的"; }
 		if(!isset($name) || empty($name)) { $errors["name"] = "name 参数是必须的"; }
 		if(!isset($content) || empty($content)) { $errors["content"] = "content 参数是必须的"; }
+		
 		if(empty($errors)) {
 			$diary = new MindMapsModel($key, $name, $thumbnail, $content, $remark);
 			$data = $diary->create();

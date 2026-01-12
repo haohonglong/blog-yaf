@@ -44,6 +44,9 @@ class StockController extends ControllerBase {
 
 		$StockDetailModel = new StockDetailModel($userid, $stock_id, $data);
 		$data2 = $StockDetailModel->create();
+		
+		
+
 		switch ($data2['status']) {
 			case 0:
 			case 3:
@@ -54,6 +57,9 @@ class StockController extends ControllerBase {
 			case 1:
 				$result['status'] = 0;
 				$result['message'] = "$stock_code($stock_id)-$stock_name: 已更新完成";
+				$data['updated_at'] = $data['created_at'];
+				(new StockModel(null, null, $stock_code, null, $data))->updateTests();
+				
 				break;
 				
 			default:
@@ -556,6 +562,14 @@ class StockController extends ControllerBase {
 		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
 		if(!isset($stock_code) || empty($stock_code)) { $errors["stock_code"] = "stock_code 参数是必须的"; }
 		if(!isset($stock_name) || empty($stock_name)) { $errors["stock_name"] = "stock_name 参数是必须的"; }
+
+		if(!empty($stock_id) && StockModel::getById($stock_id)){
+			$errors["stock_id"] = "已存在";
+		}
+		if(!empty($stock_name) && StockModel::getByName($stock_name)){
+			$errors["stock_name"] = "已存在";
+		}
+		
 		if(empty($errors)) {
 			$Stock = new StockModel($userid, $stock_id, $stock_code, $stock_name, [
 				'stock_remark' => $stock_remark,
@@ -585,6 +599,12 @@ class StockController extends ControllerBase {
 		if(!isset($stock_id) || empty($stock_id)) { $errors["stock_id"] = "stock_id 参数是必须的"; }
 		if(!isset($stock_code) || empty($stock_code)) { $errors["stock_code"] = "stock_code 参数是必须的"; }
 		if(!isset($stock_name) || empty($stock_name)) { $errors["stock_name"] = "stock_name 参数是必须的"; }
+
+		$stock_id_ = StockModel::getByName($stock_name);
+		
+		if(!is_null($stock_id_) &&  !empty($stock_name) && $stock_id != $stock_id_){
+			$errors["stock_name"] = "已存在";
+		}
 		if(empty($errors)) {
 			$Stock = new StockModel($userid, $stock_id, $stock_code, $stock_name, [
 				'stock_remark' => $stock_remark,

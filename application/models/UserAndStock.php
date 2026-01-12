@@ -164,6 +164,63 @@ class UserAndStockModel
         return $data;
     }
 
+    /**
+     * @author: lhh
+     * 创建日期：2026-1-05
+     * 修改日期：2026-1-05
+     * 名称： edit
+     * 功能：
+     * 说明：
+     * 注意：
+     * @return mixed
+     */
+    public function edit($id){
+        $others = "";
+        if(!is_null($this->bought)  && $this->bought > 0){
+            $others .= ", bought=:bought, `cost`=:cost";
+        }
+
+        if(!is_null($this->stock_remain)){
+            $others .= ", stock_remain=:stock_remain";
+        }
+
+        $stock  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET 
+         
+        `tax`=:tax, 
+        `stock_deal_total`=:stock_deal_total, 
+        `gone`=:gone,  
+        `updated_at`=:updated_at". $others ." 
+        WHERE userid=:userid AND stock_id=:stock_id AND id=:id");
+
+        if(!is_null($this->bought) && $this->bought > 0){
+            $stock->bindParam(':bought', $this->bought, \PDO::PARAM_STR);
+            $stock->bindParam(':cost', $this->stock_cost, \PDO::PARAM_STR);
+        }
+
+        
+        if(!is_null($this->stock_remain)){
+            $stock->bindParam(':stock_remain', $this->stock_remain, \PDO::PARAM_STR);
+            
+        }
+
+        $stock->bindParam(':userid', $this->userid, \PDO::PARAM_STR);
+        $stock->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
+        $stock->bindParam(':id', $id, \PDO::PARAM_STR);
+        $stock->bindParam(':tax', $this->tax, \PDO::PARAM_STR);
+        $stock->bindParam(':stock_deal_total', $this->stock_deal_total, \PDO::PARAM_STR);
+        $stock->bindParam(':gone', $this->gone, \PDO::PARAM_STR);
+        $stock->bindParam(':updated_at', $this->created_at, \PDO::PARAM_STR);
+
+        if($stock->execute()){
+            $data['status'] = 1;
+            $data['message'] = '修改成功';
+        }else{
+            $data['status'] = 0;
+            $data['message'] = $stock->errorInfo() . " in " . __FILE__ . " on line " . __LINE__;
+        }
+        return $data;
+    }
+
     
 
 }

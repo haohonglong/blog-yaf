@@ -1,13 +1,26 @@
 <?php
 use base\controller\ControllerBase;
 use Yaf\Registry;
+use Yaf\Config\Ini;
 
 
 
 
 class SiteController extends ControllerBase {
+
+    private static $URL = null;
+    
+    private static function initURL() {
+        if (static::$URL === null) {
+            $config = new Ini(APPLICATION_PATH . "/conf/application.ini", 'common');
+            static::$URL = $config->get("application")->blogapiurl;
+        }
+        return static::$URL;
+    }
     
     public function signupAction() {
+        static::initURL();
+
         $username = $this->getRequest()->getPost("username", "");
         $password = $this->getRequest()->getPost("password", "");
         $phone = $this->getRequest()->getPost("phone", "");
@@ -30,7 +43,7 @@ class SiteController extends ControllerBase {
         if(empty($errors)){
 
             
-            $url = "http://blog.admin/api/site/signup";
+            $url = static::$URL. "/site/signup";
 
             $params = [
                 "username" => $username,
@@ -85,6 +98,7 @@ class SiteController extends ControllerBase {
     }
 
     public function loginAction() {
+        static::initURL();
         $redis = Registry::get('redis');
 
         $username = $this->getRequest()->getPost("username", "");
@@ -99,7 +113,7 @@ class SiteController extends ControllerBase {
         }
 
         if(empty($errors)){
-            $url = "http://blog.admin/api/site/login";
+            $url = static::$URL. "/site/login";
 
             $params = [
                 "username" => $username,
@@ -152,14 +166,15 @@ class SiteController extends ControllerBase {
                 $data['message'] = 'successful';
 
                 $user = "user:{$data['data']['id']}";
-                if ($redis->exists($user)) {
-                    $data['status'] = 1;
-                    $data['error'] = '此用户已经在登录中了，您不能再次登录';
-                    $data['message'] = 'failed';
-                }else{
+                // if ($redis->exists($user)) {
+                //     $data['status'] = 1;
+                //     $data['error'] = $data['data']['username'].'用户已经在登录中了，您不能再次登录';
+                //     $data['message'] = 'failed';
+                // }else{
                     $redis->set($user, json_encode($data['data'], JSON_UNESCAPED_UNICODE));
+                    
+                // }
 
-                }
 
 
             } else {
@@ -191,17 +206,41 @@ class SiteController extends ControllerBase {
     }
 
     public function logoutAction() {
-        $userid = $this->getRequest()->getPost("userid", 1);
-        $redis = Registry::get('redis');
-        $user = "user:{$userid}";
-        $result = $redis->del($user);
-        if ($result === 1) {
-            $data['status'] = 1;
-            $data['message'] = 'successful';
-        } else if ($result === 0) {
+        try {
+            $userid = $this->getRequest()->getPost("userid", 1);
+            $redis = Registry::get('redis');
+            
+            if (!$redis) {
+                throw new Exception('Redis connection not found');
+            }
+            
+            $user = "user:{$userid}";
+            
+            // 添加日志
+            error_log("Attempting to delete Redis key: " . $user);
+            
+            $result = $redis->del($user);
+            
+            error_log("Delete result: " . $result);
+            
+            if ($result === 1) {
+                $data['status'] = 1;
+                $data['message'] = 'successful';
+            } else if ($result === 0) {
+                $data['status'] = 1;
+                $data['message'] = 'failed: key not found';
+            } else {
+                $data['status'] = 0;
+                $data['message'] = 'failed: unknown error';
+            }
+            
+        } catch (Exception $e) {
             $data['status'] = 0;
-            $data['message'] = 'failed';
+            $data['message'] = 'Exception: ' . $e->getMessage();
+            error_log("Redis delete exception: " . $e->getMessage());
         }
+
+        
         
         echo json_encode($data,JSON_UNESCAPED_UNICODE);
         exit;

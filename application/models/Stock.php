@@ -43,7 +43,7 @@ class StockModel extends StockModelBase
      * @return mixed
      */
     public static function getByName($name) {
-        return Registry::get('db')->get(static::tableName(),"stock_name",["stock_name"=>$name]);
+        return Registry::get('db')->get(static::tableName(),"stock_id",["stock_name"=>$name]);
     }
 
     public static function getById($stock_id) {
@@ -56,7 +56,7 @@ class StockModel extends StockModelBase
 
 
     public static function getLastOneByStockId($stock_id) {
-        $query = Registry::get('db')->get(static::tableName(),"*",["stock_id"=>$stock_id]);
+        $query = Registry::get('db')->get(static::tableName(), "*", ["stock_id"=>$stock_id]);
         return $query;
     }
 
@@ -78,9 +78,14 @@ class StockModel extends StockModelBase
             $sql = " LIMIT {$size}, {$rows}";
         }
 
-        $all = "amount, amplitude, average, bought, change, close, cost, created_at, flag, highest, ldown, level, lowest, lup, open, stock_code, stock_id, stock_name, stock_number, stock_price, stock_remark, tax, updated_at, volume";
 
-        $query = Registry::get('db')->query("SELECT * FROM ".static::tableName()." ORDER BY created_at DESC". $sql)->fetchAll(\PDO::FETCH_ASSOC);
+        $select = "SELECT 
+                a.amount, a.amplitude, a.average, a.change, a.close, a.created_at, a.flag, a.highest, a.ldown, a.level, a.lowest, a.lup, a.open, a.stock_code, a.stock_id, a.stock_name, a.stock_number, a.stock_price, a.stock_remark, a.updated_at, a.volume,
+                b.id, b.bought, b.cost, b.tax
+            FROM ".static::tableName()." as a 
+            LEFT JOIN ".UserAndStockModel::tableName()." as b ON a.stock_id = b.stock_id
+            ";
+        $query = Registry::get('db')->query($select. " WHERE b.userid = {$userid} ORDER BY created_at DESC ". $sql)->fetchAll(\PDO::FETCH_ASSOC);
         foreach($query as $k => $v){
             $query[$k]['level'] = +$v['level'];
             $query[$k]['bought'] = +$v['bought'];
@@ -106,7 +111,7 @@ class StockModel extends StockModelBase
 
         $all = "amount, amplitude, average, bought, change, close, cost, created_at, flag, highest, ldown, level, lowest, lup, open, stock_code, stock_id, stock_name, stock_number, stock_price, stock_remark, tax, updated_at, volume";
 
-        $query = Registry::get('db')->query("SELECT * FROM ".static::tableName()." ORDER BY created_at DESC")->fetchAll(\PDO::FETCH_ASSOC);
+        $query = Registry::get('db')->query("SELECT * FROM ".static::tableName()." WHERE flag = 0 ORDER BY created_at DESC")->fetchAll(\PDO::FETCH_ASSOC);
         foreach($query as $k => $v){
             $query[$k]['level'] = +$v['level'];
             $query[$k]['bought'] = +$v['bought'];
@@ -267,6 +272,71 @@ class StockModel extends StockModelBase
 
         return $data;
     }
+    /**
+     * @author: lhh
+     * 创建日期：2025-12-22
+     * 修改日期：2025-12-22
+     * 名称： updateTests
+     * 功能：只更新flag = 1，批量更新
+     * 说明：交易时不会执行，只有请求api更新股票信息时才执行，考虑到网络性能问题，自动更新股票信息时每个股票代码只更新一次,其余同名股票代码数据更新，通过这条更新过的数据复制来更新它们
+     * 注意：
+     * @return mixed
+     */
+    public function updateTests(){
+        $setFields = [
+            "`stock_price`=:stock_price",
+            "`open`=:open",
+            "`close`=:close", 
+            "`lup`=:lup",
+            "`ldown`=:ldown",
+            "`highest`=:highest",
+            "`lowest`=:lowest", 
+            "`average`=:average",
+            "`change`=:change",
+            "`amplitude`=:amplitude",
+            "`volume`=:volume",
+            "`amount`=:amount",
+            "`updated_at`=:updated_at"
+        ];
+
+
+        $setClause = implode(", ", $setFields);
+
+        $sql = "UPDATE ".static::tableName() ." SET " . $setClause . " WHERE `flag` = 1 AND `stock_code`=:stock_code";
+        // error_log("执行的SQL: " . $sql . " in " . __FILE__ . " on line " . __LINE__); // 调试用
+        
+
+        $stock = Registry::get('db')->pdo->prepare($sql);
+
+
+        // 绑定固定参数
+        $stock->bindParam(':stock_code', $this->stock_code, \PDO::PARAM_STR);
+        $stock->bindParam(':stock_price', $this->stock_price, \PDO::PARAM_STR);
+        $stock->bindParam(':open', $this->open, \PDO::PARAM_STR);
+        $stock->bindParam(':close', $this->close, \PDO::PARAM_STR);
+        $stock->bindParam(':lup', $this->lup, \PDO::PARAM_STR);
+        $stock->bindParam(':ldown', $this->ldown, \PDO::PARAM_STR);
+        $stock->bindParam(':highest', $this->highest, \PDO::PARAM_STR);
+        $stock->bindParam(':lowest', $this->lowest, \PDO::PARAM_STR);
+        $stock->bindParam(':average', $this->average, \PDO::PARAM_STR);
+        $stock->bindParam(':change', $this->change, \PDO::PARAM_STR);
+        $stock->bindParam(':amplitude', $this->amplitude, \PDO::PARAM_STR);
+        $stock->bindParam(':volume', $this->volume, \PDO::PARAM_STR);
+        $stock->bindParam(':amount', $this->amount, \PDO::PARAM_STR);
+        $stock->bindParam(':updated_at', $this->updated_at, \PDO::PARAM_STR);
+
+        if($stock->execute()){
+            $data['status'] = 1;
+            $data['message'] = '更新成功';
+        }else{
+            $error = $stock->errorInfo();
+            error_log("SQL错误详情: " . print_r($error, true));
+            $data['status'] = 0;
+            $data['message'] = $error . " in " . __FILE__ . " on line " . __LINE__;
+        }
+
+        return $data;
+    }
 
     /**
      * @author: lhh
@@ -370,6 +440,12 @@ class StockModel extends StockModelBase
 
     public static function delete($userid, $stock_id) {
         $database = Registry::get('db');
+        if(0  == static::getById($stock_id)['flag']){ //非测试股票不能被删除
+            return [
+                'status' => 1,  // 1=失败
+                'message' => '非测试股票不能被删除',
+            ];
+        }
         
         // 添加调试信息
         error_log("第 " . __LINE__ . " 行: 开始删除股票数据, stock_id: " . $stock_id);

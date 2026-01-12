@@ -233,7 +233,7 @@ class StockDetailModel extends StockModelBase
         $stock_deal_total = (int)$this->stock_deal_total;
         $date_and_time = explode(' ',$this->created_at);
         $stock = StockModel::getById($stock_id);
-        $userAndStockResult = UserAndStockModel::getByUseridAndStockId(1, $this->stock_id);
+        $userAndStockResult = UserAndStockModel::getByUseridAndStockId($this->userid, $this->stock_id);
 
         if(is_null($stock)){ //  
             $data['status'] = 0;
@@ -245,8 +245,12 @@ class StockDetailModel extends StockModelBase
         // 简单成本计算
         $number = (int)$stock["stock_number"];
         $tax = $stock["tax"] ?? 5.00;
-
-        if(static::hasBothStockIdAndDate($stock_id, $this->created_at)){
+        $stock_id_ = $stock_id;
+        if(1 == $stock['flag']){
+            $stock_id_ = Registry::get('db')->get(StockModel::tableName(),"stock_id",["stock_code"=>$stock["stock_code"], "flag"=>0]);
+        }
+        
+        if(static::hasBothStockIdAndDate($stock_id_, $this->created_at)){
             $data['status'] = 3;
             $data['message'] = $stock_id ."-". $stock['stock_name'] ." ". $this->created_at ." 同一时间不能再次写入同一个股票数据";
             return $data;
@@ -331,20 +335,20 @@ class StockDetailModel extends StockModelBase
 
 
 
-                    // $userAndStockModel = new UserAndStockModel($this->userid, $stock_id, $userAndStockDatas);
+                    $userAndStockModel = new UserAndStockModel($this->userid, $stock_id, $userAndStockDatas);
 
-                    // if(is_null($userAndStockResult)){
-                    //     $userAndStockModelData = $userAndStockModel->create();
+                    if(is_null($userAndStockResult)){
+                        $userAndStockModelData = $userAndStockModel->create();
                         
-                    // }else{
-                    //     $userAndStockModelData = $userAndStockModel->update();
+                    }else{
+                        $userAndStockModelData = $userAndStockModel->update();
                         
-                    // }
+                    }
                     
-                    // if(0  == $userAndStockModelData['status']){
-                    //     $database->pdo->rollBack();
-                    //     return $userAndStockModelData;
-                    // }
+                    if(0  == $userAndStockModelData['status']){
+                        $database->pdo->rollBack();
+                        return $userAndStockModelData;
+                    }
 
                 }
 
@@ -465,18 +469,18 @@ class StockDetailModel extends StockModelBase
             }
 
             
-            $userAndStockModel = new UserAndStockModel($this->userid, $stock_id, $userAndStockDatas);
-            if(is_null($userAndStockResult)){
-                $userAndStockModelData = $userAndStockModel->create();
+            // $userAndStockModel = new UserAndStockModel($this->userid, $stock_id, $userAndStockDatas);
+            // if(is_null($userAndStockResult)){
+            //     $userAndStockModelData = $userAndStockModel->create();
                 
-            }else{
-                $userAndStockModelData = $userAndStockModel->update();
+            // }else{
+            //     $userAndStockModelData = $userAndStockModel->update();
                 
-            }
-            if(0  == $userAndStockModelData['status']){
-                $database->pdo->rollBack();
-                return $userAndStockModelData;
-            }
+            // }
+            // if(0  == $userAndStockModelData['status']){
+            //     $database->pdo->rollBack();
+            //     return $userAndStockModelData;
+            // }
 
 
 

@@ -40,6 +40,9 @@ class StockDateModel extends StockModelBase
      * @return mixed
      */
     public static function getListByStockId($stock_id) {
+        $stock_code = StockModel::getById($stock_id)['stock_code'];
+        $stock_id = Registry::get('db')->get(StockModel::tableName(), "stock_id", ["stock_code"=>$stock_code, "flag"=> 0]);
+
         $query = Registry::get('db')->select(static::tableName(),"*",["stock_id"=>$stock_id]);
 
         return $query;
