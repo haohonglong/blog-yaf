@@ -86,11 +86,15 @@ class ArticleModel
 
 
     public function create() {
-        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET user_id=:userid, sorts_id=:sid, title=:title, content=:content");
+        $created_at = date("Y-m-d H:i:s");
+        $sth  = Registry::get('db')->pdo->prepare("INSERT INTO ".static::tableName() ." SET user_id=:userid, sorts_id=:sid, title=:title, content=:content, cdate=:created_at, udate=:created_at");
         $sth->bindParam(':userid', $this->userid, \PDO::PARAM_STR);
         $sth->bindParam(':sid', $this->sid, \PDO::PARAM_STR);
         $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
+        $sth->bindParam(':created_at', $created_at, \PDO::PARAM_STR);
+        $sth->bindParam(':created_at', $created_at, \PDO::PARAM_STR);
+
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '添加成功';
@@ -102,12 +106,14 @@ class ArticleModel
     }
 
     public function edit($id) {
-        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET user_id=:userid, sorts_id=:sid, title=:title, content=:content WHERE id = :id limit 1");
+        $updated_at = date("Y-m-d H:i:s");
+        $sth  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET user_id=:userid, sorts_id=:sid, title=:title, content=:content, udate=:updated_at WHERE id = :id limit 1");
         $sth->bindParam(':id', $id, \PDO::PARAM_STR);
         $sth->bindParam(':userid', $this->userid, \PDO::PARAM_STR);
         $sth->bindParam(':sid', $this->sid, \PDO::PARAM_STR);
         $sth->bindParam(':title', $this->title, \PDO::PARAM_STR);
         $sth->bindParam(':content', $this->content, \PDO::PARAM_STR);
+        $sth->bindParam(':updated_at', $updated_at, \PDO::PARAM_STR);
         if($sth->execute()){
             $data['status'] = 1;
             $data['message'] = '修改成功';
