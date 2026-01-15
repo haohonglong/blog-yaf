@@ -223,7 +223,7 @@ class StockDetailModel extends StockModelBase
      * 名称： create
      * 功能：
      * 说明：stock_detail 成功添加一条后，然后在操作stock和stock_daily表。 只有买入和卖出时才操作stock_history表
-     * 注意：
+     * 注意：从2026-1-10起非买卖时不再往流水账存数据了
      * @return mixed
      */
     public function create() {
@@ -282,7 +282,7 @@ class StockDetailModel extends StockModelBase
         try {
             $database->pdo->beginTransaction();
 
-            if($type > 0 || $stock["stock_id"] == $stock["stock_code"] || 0 == $stock["flag"]){// 为了避免数据冗余，只有非测试数据，或测试股票只在买卖时才往stock_detail里存储数据
+            if($type > 0 || 0 == $stock["flag"]){// 为了避免数据冗余，只有非测试数据，或测试股票只在买卖时才往stock_detail里存储数据
                 if($type > 0){
                     if(1 == $type){// 买入时
                         $number += $stock_deal_total; 
@@ -350,42 +350,37 @@ class StockDetailModel extends StockModelBase
                         return $userAndStockModelData;
                     }
 
-                }
+                    // 已经到了百万数据了，所有从2026-1-10起只有买卖时才写入流水账
+                    $stockDetailData = 
+                    //  insert a data to the stock_detail
+                    $database->insert(static::tableName(), [
+                        'stock_id' => $stock_id,
+                        'stock_price' => $this->stock_price,
+                        'stock_deal_total' => $stock_deal_total,
+                        'stock_type' => $type,
+                        'stock_number' => $number,
+                        'stock_date_at' => $date_and_time[0],
+                        'stock_time_at' => $date_and_time[1],
+                        'created_at' => $this->created_at,
+                        'open' => $this->open,
+                        'close' => $this->close,
+                        'lup' => $this->lup,
+                        'ldown' => $this->ldown,
+                        'highest' => $this->highest,
+                        'lowest' => $this->lowest,
+                        'average' => $this->average,
+                        'change' => $this->change,
+                        'amplitude' => $this->amplitude,
+                        'volume' => $this->volume,
+                        'amount' => $this->amount,
+                        'gone' => $gone,
+                        'stock_detail_remark' => $this->stock_detail_remark,
+                        'profit' => $this->profit,
+                    ]);
+                    $lastInsertId = $database->id();
+                    $lastInsertId = (int)$lastInsertId;
 
-                $stockDetailData = 
-                //  insert a data to the stock_detail
-                $database->insert(static::tableName(), [
-                    'stock_id' => $stock_id,
-                    'stock_price' => $this->stock_price,
-                    'stock_deal_total' => $stock_deal_total,
-                    'stock_type' => $type,
-                    'stock_number' => $number,
-                    'stock_date_at' => $date_and_time[0],
-                    'stock_time_at' => $date_and_time[1],
-                    'created_at' => $this->created_at,
-                    'open' => $this->open,
-                    'close' => $this->close,
-                    'lup' => $this->lup,
-                    'ldown' => $this->ldown,
-                    'highest' => $this->highest,
-                    'lowest' => $this->lowest,
-                    'average' => $this->average,
-                    'change' => $this->change,
-                    'amplitude' => $this->amplitude,
-                    'volume' => $this->volume,
-                    'amount' => $this->amount,
-                    'gone' => $gone,
-                    'stock_detail_remark' => $this->stock_detail_remark,
-                    'profit' => $this->profit,
-                ]);
-                
-                $lastInsertId = $database->id();
-                $lastInsertId = (int)$lastInsertId;
-
-                // var_dump($lastInsertId);
-
-                if($lastInsertId){
-                    if($type > 0){
+                    if($lastInsertId){
                         // 交易历史
                         $theDataOfstockDateModel = (new StockHistoryModel($stock_id, [
                             'stock_price' => $this->stock_price,
@@ -402,61 +397,59 @@ class StockDetailModel extends StockModelBase
                             $database->pdo->rollBack();
                             return $theDataOfstockDateModel;
                         }
-                        
+                    }else{
+                        $database->pdo->rollBack();
+                        $data['status'] = 0;
+                        $data['message'] = "failed: insert a data to the stock_detail" . " in " . __FILE__ . " on line " . __LINE__;
                     }
+                }
 
-                    if(0 == $stock["flag"]){// 非测试股票才操作日更新表（避免不必要的数据冗余）
-                        $query = StockDateModel::getByIdAndDate($stock_id, $date_and_time[0]);
-                        
-                        $stockDateModel = new StockDateModel($stock_id, $date_and_time[0], $this->created_at, [
-                            'stock_price' => $this->stock_price,
-                            'open' => $this->open,
-                            'close' => $this->close,
-                            'lup' => $this->lup,
-                            'ldown' => $this->ldown,
-                            'highest' => $this->highest,
-                            'lowest' => $this->lowest,
-                            'average' => $this->average,
-                            'amplitude' => $this->amplitude,
-                            'volume' => $this->volume,
-                            'amount' => $this->amount,
-                            'change' => $this->change,
-                        ]);
-        
-                        
-                        
-                        
-                        if(!isset($query)){// create
-                            $data = $stockDateModel->create();
-                            if(0  == $data['status']){
-                                $database->pdo->rollBack();
-                                return $data;
-                            }
                 
-                        }else {// update
-                            if($query["open"]  != $this->open 
-                            || $query["highest"]  != $this->highest   
-                            || $query["lowest"]  != $this->lowest   
-                            || $query["average"]  != $this->average   
-                            || $query["amplitude"]  != $this->amplitude   
-                            || $query["change"]  != $this->change   
-                            ){
-                                $data = $stockDateModel->update();
-                                if(0  == $data['status']){
-                                    $database->pdo->rollBack();
-                                    return $data;
-                                }
-                            }
-                            
-                        }
 
+                // var_dump($lastInsertId);
+
+                $query = StockDateModel::getByIdAndDate($stock_id, $date_and_time[0]);
+                        
+                $stockDateModel = new StockDateModel($stock_id, $date_and_time[0], $this->created_at, [
+                    'stock_price' => $this->stock_price,
+                    'open' => $this->open,
+                    'close' => $this->close,
+                    'lup' => $this->lup,
+                    'ldown' => $this->ldown,
+                    'highest' => $this->highest,
+                    'lowest' => $this->lowest,
+                    'average' => $this->average,
+                    'amplitude' => $this->amplitude,
+                    'volume' => $this->volume,
+                    'amount' => $this->amount,
+                    'change' => $this->change,
+                ]);
+
+                
+                
+                
+                if(!isset($query)){// create
+                    $data = $stockDateModel->create();
+                    if(0  == $data['status']){
+                        $database->pdo->rollBack();
+                        return $data;
                     }
-
-                }else{
-                    $database->pdo->rollBack();
-                    $data['status'] = 0;
-                    $data['message'] = "failed: insert a data to the stock_detail" . " in " . __FILE__ . " on line " . __LINE__;
-
+        
+                }else {// update
+                    if($query["open"]  != $this->open 
+                    || $query["highest"]  != $this->highest   
+                    || $query["lowest"]  != $this->lowest   
+                    || $query["average"]  != $this->average   
+                    || $query["amplitude"]  != $this->amplitude   
+                    || $query["change"]  != $this->change   
+                    ){
+                        $data = $stockDateModel->update();
+                        if(0  == $data['status']){
+                            $database->pdo->rollBack();
+                            return $data;
+                        }
+                    }
+                    
                 }
 
             }
