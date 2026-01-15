@@ -49,6 +49,10 @@ class StockModel extends StockModelBase
     public static function getById($stock_id) {
         return Registry::get('db')->get(static::tableName(), "*", ["stock_id"=>$stock_id]);
     }
+    
+    public static function geCodetById($stock_id) {
+        return Registry::get('db')->get(static::tableName(), "stock_code", ["stock_id"=>$stock_id]);
+    }
 
     public static function getByCode($stock_code) {
         return Registry::get('db')->get(static::tableName(), "stock_code", ["stock_code"=>$stock_code]);
@@ -400,39 +404,74 @@ class StockModel extends StockModelBase
     /**
      * @author: lhh
      * 创建日期：2025-6-27
-     * 修改日期：2025-8-17
+     * 修改日期：2026-1-14
      * 名称： edit
      * 功能：
      * 说明：
-     * 注意：
+     * 注意：如果修改了stock_code ，那么所有的stock_code 都要改变
      * @return mixed
      */
     public function edit() {
         $updated_at = date("Y-m-d H:i:s");
-        $stock  = Registry::get('db')->pdo->prepare("UPDATE ".static::tableName() ." SET stock_code=:stock_code, stock_name=:stock_name, cost=:stock_cost, tax=:tax, stock_remark=:stock_remark, updated_at=:updated_at WHERE stock_id=:stock_id");
-        $stock->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
-        $stock->bindParam(':stock_code', $this->stock_code, \PDO::PARAM_STR);
-        $stock->bindParam(':stock_name', $this->stock_name, \PDO::PARAM_STR);
-        $stock->bindParam(':stock_remark', $this->stock_remark, \PDO::PARAM_STR);
-        $stock->bindParam(':updated_at', $updated_at, \PDO::PARAM_STR);
-        $stock->bindParam(':stock_cost', $this->stock_cost, \PDO::PARAM_STR);
-        $stock->bindParam(':tax', $this->tax, \PDO::PARAM_STR);
-        if($stock->execute()){
-            $data['status'] = 1;
-            $data['message'] = '修改成功';
-            $history = StockHistoryModel::setCost($this->stock_id, $this->stock_cost, $this->tax, $updated_at);
-            $userAndStock = UserAndStockModel::setCost($this->userid, $this->stock_id, $this->stock_cost, $this->tax, $updated_at);
-            if(0 == $history['status']){
-                $data = $history;
-            }
+        $old_stock_code = static::geCodetById($this->stock_id);
 
-            if(0 == $userAndStock['status']){
-                $data = $userAndStock;
+        $database = Registry::get('db');
+
+        try {
+            $database->pdo->beginTransaction();
+
+            $stock  = $database->pdo->prepare("UPDATE ".static::tableName() ." SET stock_code=:stock_code, stock_name=:stock_name, cost=:stock_cost, tax=:tax, stock_remark=:stock_remark, updated_at=:updated_at WHERE stock_id=:stock_id");
+            $stock->bindParam(':stock_id', $this->stock_id, \PDO::PARAM_STR);
+            $stock->bindParam(':stock_code', $this->stock_code, \PDO::PARAM_STR);
+            $stock->bindParam(':stock_name', $this->stock_name, \PDO::PARAM_STR);
+            $stock->bindParam(':stock_remark', $this->stock_remark, \PDO::PARAM_STR);
+            $stock->bindParam(':updated_at', $updated_at, \PDO::PARAM_STR);
+            $stock->bindParam(':stock_cost', $this->stock_cost, \PDO::PARAM_STR);
+            $stock->bindParam(':tax', $this->tax, \PDO::PARAM_STR);
+            if($stock->execute()){
+                $data['status'] = 1;
+                $data['message'] = '修改成功';
+                $history = StockHistoryModel::setCost($this->stock_id, $this->stock_cost, $this->tax, $updated_at);
+                $userAndStock = UserAndStockModel::setCost($this->userid, $this->stock_id, $this->stock_cost, $this->tax, $updated_at);
+                if(0 == $history['status']){
+                    $database->pdo->rollBack();
+                    $data = $history;
+                    return $data;
+                }
+
+                if(0 == $userAndStock['status']){
+                    $database->pdo->rollBack();
+                    $data = $userAndStock;
+                    return $data;
+                }
+                if($old_stock_code != $this->stock_code){
+                    $stock2  = $database->pdo->prepare("UPDATE ".static::tableName() ." SET stock_code=:stock_code, updated_at=:updated_at WHERE stock_code=:old_stock_code");
+                    $stock2->bindParam(':old_stock_code', $old_stock_code, \PDO::PARAM_STR);
+                    $stock2->bindParam(':stock_code', $this->stock_code, \PDO::PARAM_STR);
+                    $stock2->bindParam(':updated_at', $updated_at, \PDO::PARAM_STR);
+                    if(!$stock2->execute()){
+                        $data['status'] = 0;
+                        $data['message'] = $stock2->errorInfo();
+                        $database->pdo->rollBack();
+                        return $data;
+                    }
+                }
+                $database->pdo->commit();
+            }else{
+                $database->pdo->rollBack();
+                $data['status'] = 0;
+                $data['message'] = $stock->errorInfo();
             }
-        }else{
+        }catch (Exception $e) {
+            $database->pdo->rollBack();
             $data['status'] = 0;
-            $data['message'] = $stock->errorInfo();
+            $data['message'] = $e->getMessage() . " in " . __FILE__ . " on line " . __LINE__;
+			
         }
+
+        
+
+        
         return $data;
     }
 
