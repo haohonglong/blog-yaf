@@ -42,7 +42,7 @@ class StockController extends ControllerBase {
 		$data['stock_deal_total'] = $data['stock_deal_total'] ?? 0;
 		$data['stock_detail_remark'] = $data['stock_detail_remark'] ?? "";
 
-		$StockDetailModel = new StockDetailModel($userid, $stock_id, $data);
+		$StockDetailModel = new StockDetail2Model($userid, $stock_id, $data);
 		$data2 = $StockDetailModel->create();
 		
 		
@@ -152,16 +152,23 @@ class StockController extends ControllerBase {
 		if(!isset($data)){
 			$result['status'] = 2;
 			$result['message'] = "{$stock_code}-{$stock_name} url地址错误或者是休市日";
+			return $result;
 		} else {
 			try {
 				$minute_data = $data['Result'][1]['DisplayData']['resultData']['tplData']['result']['minute_data'];
 				$date       = $minute_data['update']['text'];
 				$y = date('Y-');
 				$date = $y.$date;
+				// var_dump(explode(" ", $date)[0], date('Y-m-d'));
+				if(date('Y-m-d') != explode(" ", $date)[0]){
+					$result['status'] = 2;
+					$result['message'] = "服务器现在是测试时间";
+					return $result;	
+				}
+
 				$priceinfo  = $minute_data['priceinfo'];
 				$origin_pankou       = $minute_data['pankouinfos']['origin_pankou'];
 				$average    = $minute_data['pankouinfos']['list'][13]['value'];
-				// print_r($data);exit;
 				$open = isset($origin_pankou['open']) ? $origin_pankou['open'] : 0;
 				$preClose = isset($origin_pankou['preClose']) ? $origin_pankou['preClose'] : 0;
 				$limitUp = isset($origin_pankou['limitUp']) ? $origin_pankou['limitUp'] : 0;
