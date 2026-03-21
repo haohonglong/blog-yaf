@@ -284,8 +284,24 @@ class StockDetailModel extends StockModelBase
 
             if($type > 0 || 0 == $stock["flag"]){// 为了避免数据冗余，只有非测试数据，或测试股票只在买卖时才往stock_detail里存储数据
                 if($type > 0){
+                    $wallet = UserModel::getByWallet($this->userid);
                     if(1 == $type){// 买入时
                         $number += $stock_deal_total; 
+                        $amount = floatval(($this->stock_price * $stock_deal_total)+$tax);
+                        $wallet -= $amount;
+                        
+
+                        if($wallet < 0){
+                            $data['status'] = 0;
+                            $data['message'] = "余额不足, 请先充值";
+                            $database->pdo->rollBack();
+                            return $data;
+                        }
+
+                        $amount_str = number_format($amount, 2);
+                        $wallet_str = number_format($wallet, 2);
+                        $cause="交易-买入";
+                        $content = "{$stock_deal_total}股（{$this->stock_price}/股）-{$amount_str}，余额:{$wallet_str}";
 
                     }else if(2 == $type) {// 卖出时 
                         $number -= $stock_deal_total;
@@ -309,6 +325,14 @@ class StockDetailModel extends StockModelBase
                             $this->profit = 0;
 
                         }
+                        
+                        $amount = ($this->stock_price * $stock_deal_total) - $tax;
+                        $wallet += $amount;
+
+                        $amount_str = number_format($amount, 2);
+                        $wallet_str = number_format($wallet, 2);
+                        $cause="交易-卖出";
+                        $content = "{$stock_deal_total}股（{$this->stock_price}/股）+{$amount_str}，余额:{$wallet_str}";
 
                     } else {
                         $data['status'] = 0;
@@ -322,6 +346,14 @@ class StockDetailModel extends StockModelBase
                         list($costPrice, $profit) = $this->calculateStockCost($stock, $tax);
                         $stockModelDatas["stock_cost"] = $costPrice;
                         $this->profit = $profit;
+                    }
+
+                    $result = UserModel::setWallet($this->userid, $wallet, $cause, $content, $this->created_at);
+                    if($result['status'] == 0){
+                        $data['status'] = 0;
+                        $data['message'] = "更新用户金额异常";
+                        $database->pdo->rollBack();
+                        return $data;
                     }
 
                     
@@ -351,7 +383,7 @@ class StockDetailModel extends StockModelBase
                     }
 
                     // 已经到了百万数据了，所有从2026-1-10起只有买卖时才写入流水账
-                    $stockDetailData = 
+                    
                     //  insert a data to the stock_detail
                     $database->insert(static::tableName(), [
                         'stock_id' => $stock_id,
@@ -450,6 +482,289 @@ class StockDetailModel extends StockModelBase
                         }
                     }
                     
+                }
+
+            }
+
+            $stockModel = new StockModel($this->userid, $stock_id, null, null, $stockModelDatas);
+            $data2 = $stockModel->update();
+            if(0  == $data2['status']){
+                $database->pdo->rollBack();
+                return $data2;
+            }
+
+            
+            // $userAndStockModel = new UserAndStockModel($this->userid, $stock_id, $userAndStockDatas);
+            // if(is_null($userAndStockResult)){
+            //     $userAndStockModelData = $userAndStockModel->create();
+                
+            // }else{
+            //     $userAndStockModelData = $userAndStockModel->update();
+                
+            // }
+            // if(0  == $userAndStockModelData['status']){
+            //     $database->pdo->rollBack();
+            //     return $userAndStockModelData;
+            // }
+
+
+
+            $data['status'] = 1;
+            $data['message'] = '数据存储成功';
+            $database->pdo->commit();
+
+        } catch (Exception $e) {
+            $database->pdo->rollBack();
+            $data['status'] = 0;
+            $data['message'] = $e->getMessage() . " in " . __FILE__ . " on line " . __LINE__;
+			
+        }
+        
+        return $data;
+    }
+
+    /**
+     * @author: lhh
+     * 创建日期：2026-2-05
+     * 修改日期：2026-2-05
+     * 名称： create2
+     * 功能：
+     * 说明：stock_detail 成功添加一条后，然后在操作stock和stock_daily表。 只有买入和卖出时才操作stock_history表
+     * 注意：
+     * @return mixed
+     */
+    public function create2() {
+        $gone = 0;
+        $stock_id = $this->stock_id;
+        $type = (int)$this->stock_type;
+        $stock_deal_total = (int)$this->stock_deal_total;
+        $date_and_time = explode(' ',$this->created_at);
+        $stock = StockModel::getById($stock_id);
+        $userAndStockResult = UserAndStockModel::getByUseridAndStockId($this->userid, $this->stock_id);
+
+        if(is_null($stock)){ //  
+            $data['status'] = 0;
+            $data['message'] = "股票代码{$stock_id}不存在";
+            return $data;
+        }
+
+        
+        // 简单成本计算
+        $number = (int)$stock["stock_number"];
+        $tax = $stock["tax"] ?? 5.00;
+        $stock_id_ = $stock_id;
+        if(1 == $stock['flag']){
+            $stock_id_ = Registry::get('db')->get(StockModel::tableName(),"stock_id",["stock_code"=>$stock["stock_code"], "flag"=>0]);
+        }
+        
+        if(static::hasBothStockIdAndDate($stock_id_, $this->created_at)){
+            $data['status'] = 3;
+            $data['message'] = $stock_id ."-". $stock['stock_name'] ." ". $this->created_at ." 同一时间不能再次写入同一个股票数据";
+            return $data;
+        }
+        
+        $stockModelDatas = [
+            'stock_price' => $this->stock_price,
+            'open' => $this->open,
+            'close' => $this->close,
+            'lup' => $this->lup,
+            'ldown' => $this->ldown,
+            'highest' => $this->highest,
+            'lowest' => $this->lowest,
+            'average' => $this->average,
+            'amplitude' => $this->amplitude,
+            'volume' => $this->volume,
+            'amount' => $this->amount,
+            'change' => $this->change,
+            'updated_at' => $this->created_at,
+        ];
+
+        $userAndStockDatas = [
+            'created_at' => $this->created_at,
+            'flag' => $stock["flag"],
+        ];
+
+        $database = Registry::get('db');
+
+        try {
+            $database->pdo->beginTransaction();
+
+            if($type > 0 || 0 == $stock["flag"]){// 为了避免数据冗余，只有非测试数据，或测试股票只在买卖时才往stock_detail里存储数据
+                /*
+                if($type > 0){
+                    if(1 == $type){// 买入时
+                        $number += $stock_deal_total; 
+
+                    }else if(2 == $type) {// 卖出时 
+                        $number -= $stock_deal_total;
+
+                        if($number < 0){//检查剩余股票数量是否够卖
+                            $data['status'] = 0;
+                            $data['message'] = "剩股票数量不够";
+                            return $data;
+
+                        }else if(0 == $number){ // 清仓时
+                            $gone = 1;
+                            $userAndStockDatas["gone"] = $gone;
+                            if(!static::liquidate($stock_id, $this->userid)) {
+                                $data['status'] = 0;
+                                $data['message'] = "清仓时异常";
+                                $database->pdo->rollBack();
+                                return $data;
+
+                            }
+                            $stockModelDatas["stock_cost"] = null;
+                            $this->profit = 0;
+
+                        }
+
+                    } else {
+                        $data['status'] = 0;
+                        $data['message'] = "非法交易类别！必须是1或2";
+                        $database->pdo->rollBack();
+                        return $data;
+                    }
+
+                    if(0 === $gone){ // 不清仓时计算成本价
+                        // 交易时要计算当前股票成本价须先获取它的历史买卖记录（非清仓）
+                        list($costPrice, $profit) = $this->calculateStockCost($stock, $tax);
+                        $stockModelDatas["stock_cost"] = $costPrice;
+                        $this->profit = $profit;
+                    }
+
+                    
+                    $stockModelDatas["bought"] = $this->stock_price;
+                    $stockModelDatas["stock_number"] = $number;
+                    $userAndStockDatas["stock_remain"] = $number;
+                    $userAndStockDatas["stock_deal_total"] = $stock_deal_total;
+                    $userAndStockDatas["created_at"] = $this->created_at;
+                    $userAndStockDatas["bought"] = $stockModelDatas["bought"];
+                    $userAndStockDatas["stock_cost"] = $stockModelDatas["stock_cost"];
+
+
+
+                    $userAndStockModel = new UserAndStockModel($this->userid, $stock_id, $userAndStockDatas);
+
+                    if(is_null($userAndStockResult)){
+                        $userAndStockModelData = $userAndStockModel->create();
+                        
+                    }else{
+                        $userAndStockModelData = $userAndStockModel->update();
+                        
+                    }
+                    
+                    if(0  == $userAndStockModelData['status']){
+                        $database->pdo->rollBack();
+                        return $userAndStockModelData;
+                    }
+
+                }
+                */
+ 
+                //  insert a data to the stock_detail
+                $database->insert(static::tableName(), [
+                    'stock_id' => $stock_id,
+                    'stock_price' => $this->stock_price,
+                    'stock_deal_total' => $stock_deal_total,
+                    'stock_type' => $type,
+                    'stock_number' => $number,
+                    'stock_date_at' => $date_and_time[0],
+                    'stock_time_at' => $date_and_time[1],
+                    'created_at' => $this->created_at,
+                    'open' => $this->open,
+                    'close' => $this->close,
+                    'lup' => $this->lup,
+                    'ldown' => $this->ldown,
+                    'highest' => $this->highest,
+                    'lowest' => $this->lowest,
+                    'average' => $this->average,
+                    'change' => $this->change,
+                    'amplitude' => $this->amplitude,
+                    'volume' => $this->volume,
+                    'amount' => $this->amount,
+                    'gone' => $gone,
+                    'stock_detail_remark' => $this->stock_detail_remark,
+                    'profit' => $this->profit,
+                ]);
+                
+                $lastInsertId = $database->id();
+                $lastInsertId = (int)$lastInsertId;
+
+                // var_dump($lastInsertId);
+
+                if($lastInsertId){
+                    if($type > 0){
+                        // 交易历史
+                        $theDataOfstockDateModel = (new StockHistoryModel($stock_id, [
+                            'stock_price' => $this->stock_price,
+                            'tax' => $tax,
+                            'stock_detail_id' => $lastInsertId,
+                            'stock_deal_total' => $this->stock_deal_total,
+                            'stock_remain' => $number,
+                            'stock_type' => $type,
+                            'created_at' => $this->created_at,
+                            'date_at' => $date_and_time[0],
+                            'stock_cost' => $stockModelDatas["stock_cost"],
+                        ]))->create();
+                        if(0  == $theDataOfstockDateModel['status']){
+                            $database->pdo->rollBack();
+                            return $theDataOfstockDateModel;
+                        }
+                        
+                    }
+
+                    if(0 == $stock["flag"]){// 非测试股票才操作日更新表（避免不必要的数据冗余）
+                        $query = StockDateModel::getByIdAndDate($stock_id, $date_and_time[0]);
+                        
+                        $stockDateModel = new StockDateModel($stock_id, $date_and_time[0], $this->created_at, [
+                            'stock_price' => $this->stock_price,
+                            'open' => $this->open,
+                            'close' => $this->close,
+                            'lup' => $this->lup,
+                            'ldown' => $this->ldown,
+                            'highest' => $this->highest,
+                            'lowest' => $this->lowest,
+                            'average' => $this->average,
+                            'amplitude' => $this->amplitude,
+                            'volume' => $this->volume,
+                            'amount' => $this->amount,
+                            'change' => $this->change,
+                        ]);
+        
+                        
+                        
+                        
+                        if(!isset($query)){// create
+                            $data = $stockDateModel->create();
+                            if(0  == $data['status']){
+                                $database->pdo->rollBack();
+                                return $data;
+                            }
+                
+                        }else {// update
+                            if($query["open"]  != $this->open 
+                            || $query["highest"]  != $this->highest   
+                            || $query["lowest"]  != $this->lowest   
+                            || $query["average"]  != $this->average   
+                            || $query["amplitude"]  != $this->amplitude   
+                            || $query["change"]  != $this->change   
+                            ){
+                                $data = $stockDateModel->update();
+                                if(0  == $data['status']){
+                                    $database->pdo->rollBack();
+                                    return $data;
+                                }
+                            }
+                            
+                        }
+
+                    }
+
+                }else{
+                    $database->pdo->rollBack();
+                    $data['status'] = 0;
+                    $data['message'] = "failed: insert a data to the stock_detail" . " in " . __FILE__ . " on line " . __LINE__;
+
                 }
 
             }

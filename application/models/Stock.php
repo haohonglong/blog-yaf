@@ -63,6 +63,190 @@ class StockModel extends StockModelBase
         $query = Registry::get('db')->get(static::tableName(), "*", ["stock_id"=>$stock_id]);
         return $query;
     }
+    /**
+     * @author: lhh
+     * 创建日期：2026-2-09
+     * 修改日期：2026-2-09
+     * 名称： feach
+     * 功能：从股市百事通获取数据
+     * 说明：
+     * 注意：
+     */
+    public static function feach($item){
+		
+		$result = [];
+		$stock_code = $item['stock_code'];
+		$stock_name = $item['stock_name'];
+
+		$headers = [
+			'Connection' => 'keep-alive',
+			'Cache-Control' => 'max-age=0',
+			'Upgrade-Insecure-Requests' => '1',
+			'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/86.0.4240.198 Safari/537.36',
+			'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
+			'Sec-Fetch-Site' => 'none',
+			'Sec-Fetch-Mode' => 'navigate',
+			'Sec-Fetch-User' => '?1',
+			'Sec-Fetch-Dest' => 'document',
+			'Accept-Language' => 'zh-CN,zh;q=0.9',
+		];
+
+		$cookies = [
+			'PSTM' => '1635248519',
+			'BIDUPSID' => '90EF3BD78F53BC8C96DF84CD3854CA2D',
+			'__yjs_duid' => '1_cd247776bc887ee300105fb75c8c2a331635258445589',
+			'BDUSS' => '1oWEtxQkpPR25ySTgtSHRHb0JOR2VXcm12MEk4V3ZBZ2VkOWZSVFI2QTBlWE5pRVFBQUFBJCQAAAAAAAAAAAEAAACRJsY-cGlwacnxu7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADTsS2I07EticS',
+			'BDUSS_BFESS' => '1oWEtxQkpPR25ySTgtSHRHb0JOR2VXcm12MEk4V3ZBZ2VkOWZSVFI2QTBlWE5pRVFBQUFBJCQAAAAAAAAAAAEAAACRJsY-cGlwacnxu7AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADTsS2I07EticS',
+			'BDORZ' => 'B490B5EBF6F3CD402E515D22BCDA1598',
+			'MCITY' => '-158%3A',
+			'BA_HECTOR' => '8h242g8hah002l0g0g1h9pekn15',
+			'ZFY' => 'uYCFmlJSV5rn3KHYBSLi6naqucpmiTVS5c4ql8gHf3c:C',
+			'BAIDUID_V4' => '59DEA2219CA3CC71798923390803C00A:FG=1',
+			'RT' => '"z=1&dm=baidu.com&si=xgb0bofv4d&ss=l41exipa&sl=3&tt=jbz&bcn=https%3A%2F%2Ffclog.baidu.com%2Flog%2Fweirwood%3Ftype%3Dperf&ld=12pi&ul=1jdc&hd=1jej"',
+			'BDRCVFR[feWj1Vr5u3D]' => 'I67x6TjHwwYf0',
+			'delPer' => '0',
+			'PSINO' => '2',
+			'BAIDUID_BFESS' => '488CA1A354CAFF05B0D67E0E09E83335:FG=1',
+			'H_PS_PSSID' => '36426_36549_36465_36455_36512_36452_36167_36488_36517_36074_36519_26350_36467_36314',
+			'BAIDUID' => 'B0C47089A4FF26A4CB78746AB1FD2529:FG=1',
+			'Hm_lvt_c8bd3584daa59ca83c2ec1247d343576' => '1654438355,1654506317',
+			'Hm_lpvt_c8bd3584daa59ca83c2ec1247d343576' => '1654506958',
+		];
+
+		$params = [
+			'openapi' => '1',
+            'dspName' => 'iphone',
+            'tn' => 'tangram',
+            'client' => 'app',
+            'query' => $stock_code,
+            'code' => $stock_code,
+            'word' => $stock_code,
+            'resource_id' => '5429',
+            'ma_ver' => '4',
+            'finClientType' => 'pc',
+		];
+		$params_str = http_build_query($params);
+		$url = 'https://gushitong.baidu.com/opendata?'. $params_str;
+		// var_dump($url);
+		// file_put_contents(APPLICATION_PATH . '/application/data/gushitong_url.txt', $url . "\n", FILE_APPEND);
+
+		$curl = curl_init();
+
+		curl_setopt_array($curl, [
+			CURLOPT_URL => $url,
+			CURLOPT_RETURNTRANSFER => true,
+			CURLOPT_ENCODING => '',
+			CURLOPT_MAXREDIRS => 10,
+			CURLOPT_TIMEOUT => 0,
+			// CURLOPT_NOSIGNAL => 1,
+			CURLOPT_FOLLOWLOCATION => true,
+			CURLOPT_HTTP_VERSION => CURL_HTTP_VERSION_1_1,
+			CURLOPT_HTTPHEADER => $headers,
+			// CURLOPT_COOKIE => $cookies,
+			CURLOPT_CUSTOMREQUEST => 'GET',
+		]);
+		$data = curl_exec($curl);
+		curl_close($curl);
+		// echo $data;exit;
+		$data = json_decode($data, true);
+		// print_r($data);exit;
+		
+		if(!isset($data)){
+			$result['status'] = 2;
+			$result['message'] = "{$stock_code}-{$stock_name} url地址错误或者是休市日";
+			return $result;
+		} else {
+			try {
+				$name = $data['Result'][0]['DisplayData']['resultData']['tplData']['result']['name'];
+				$code = $data['Result'][0]['DisplayData']['resultData']['tplData']['result']['code'];
+				$exchange = $data['Result'][0]['DisplayData']['resultData']['tplData']['result']['exchange'];
+
+				$minute_data = $data['Result'][1]['DisplayData']['resultData']['tplData']['result']['minute_data'];
+				$date       = $minute_data['update']['text'];
+				$y = date('Y-');
+				$date = $y.$date;
+				// var_dump(explode(" ", $date)[0], date('Y-m-d'));
+				if(date('Y-m-d') != explode(" ", $date)[0]){
+					$result['status'] = 2;
+					$result['message'] = "服务器现在是测试时间";
+					return $result;	
+				}
+
+				$priceinfo  = $minute_data['priceinfo'];
+				$origin_pankou       = $minute_data['pankouinfos']['origin_pankou'];
+				$average    = $minute_data['pankouinfos']['list'][13]['value'];
+				$open = isset($origin_pankou['open']) ? $origin_pankou['open'] : 0;
+				$preClose = isset($origin_pankou['preClose']) ? $origin_pankou['preClose'] : 0;
+				$limitUp = isset($origin_pankou['limitUp']) ? $origin_pankou['limitUp'] : 0;
+				$limitDown = isset($origin_pankou['limitDown']) ? $origin_pankou['limitDown'] : 0;
+				$high = isset($origin_pankou['high']) ? $origin_pankou['high'] : 0;
+				$low = isset($origin_pankou['low']) ? $origin_pankou['low'] : 0;
+				$turnoverRatio = isset($origin_pankou['turnoverRatio']) ? $origin_pankou['turnoverRatio'] : 0;
+				$amplitudeRatio = isset($origin_pankou['amplitudeRatio']) ? $origin_pankou['amplitudeRatio'] : 0;
+				$volume = isset($origin_pankou['volume']) ? $origin_pankou['volume'] : 0;
+				$inside = isset($origin_pankou['inside']) ? $origin_pankou['inside'] : 0;
+				$outside = isset($origin_pankou['outside']) ? $origin_pankou['outside'] : 0;
+				$amount = isset($origin_pankou['amount']) ? $origin_pankou['amount'] : 0;
+				$weibiRatio = isset($origin_pankou['weibiRatio']) ? $origin_pankou['weibiRatio'] : 0;
+				$volumeRatio = isset($origin_pankou['volumeRatio']) ? $origin_pankou['volumeRatio'] : 0;
+				$currencyValue = isset($origin_pankou['currencyValue']) ? $origin_pankou['currencyValue'] : 0;
+				$capitalization = isset($origin_pankou['capitalization']) ? $origin_pankou['capitalization'] : 0;
+				$peratio = isset($origin_pankou['peratio']) ? $origin_pankou['peratio'] : 0;
+				$lyr = isset($origin_pankou['lyr']) ? $origin_pankou['lyr'] : 0;
+				$bvRatio = isset($origin_pankou['bvRatio']) ? $origin_pankou['bvRatio'] : 0;
+				$perShareEarn = isset($origin_pankou['perShareEarn']) ? $origin_pankou['perShareEarn'] : 0;
+				$netAssetsPerShare = isset($origin_pankou['netAssetsPerShare']) ? $origin_pankou['netAssetsPerShare'] : 0;
+				$circulatingCapital = isset($origin_pankou['circulatingCapital']) ? $origin_pankou['circulatingCapital'] : 0;
+				$totalShareCapital = isset($origin_pankou['totalShareCapital']) ? $origin_pankou['totalShareCapital'] : 0;
+				$priceLimit = isset($origin_pankou['priceLimit']) ? $origin_pankou['priceLimit'] : 0;
+				$w52_low = isset($origin_pankou['w52_low']) ? $origin_pankou['w52_low'] : 0;
+				$w52_high = isset($origin_pankou['w52_high']) ? $origin_pankou['w52_high'] : 0;
+
+				$result = [
+                    'code' => $code,
+                    'name' => $name,
+					'stock_price' => $origin_pankou['currentPrice'],
+					'created_at' => $date,
+					'open' => $open ,
+					'close' => $preClose,
+					'lup' => $limitUp,
+					'ldown' => $limitDown,
+					'highest'     => $high,
+					'lowest'       => $low,
+					'average'   => $average,
+					'change'    => $turnoverRatio, //换手率
+					'amplitude' => $amplitudeRatio, //振幅
+					'volume' => $volume, //成交量
+					'inside' => $inside, //内盘
+					'outside' => $outside, //外盘
+					'amount' => $amount, //成交额
+					'weibiRatio' => $weibiRatio, //委比
+					'volumeRatio' => $volumeRatio, //量比
+					'currencyValue' => $currencyValue, //流通值
+					'capitalization' => $capitalization, //总市值
+					'peratio' => $peratio, //市盈(TTM) string
+					'lyr' => $lyr, //市盈(静) string
+					'bvRatio' => $bvRatio, //市净率
+					'perShareEarn' => $perShareEarn, //
+					'netAssetsPerShare' => $netAssetsPerShare, //
+					'circulatingCapital' => $circulatingCapital, //流通股
+					'totalShareCapital' => $totalShareCapital, //总股本
+					'priceLimit' => $priceLimit, //涨跌幅
+					'w52_low' => $w52_low, //52周低
+					'w52_high' => $w52_high, //52周高
+				];
+
+				
+			} catch (Exception $e) {
+				$result['status'] = 1;
+				$result['message'] = $e->getMessage();
+			}
+			
+
+		}
+
+		return $result;
+	}
 
 
     /**
@@ -345,7 +529,7 @@ class StockModel extends StockModelBase
     /**
      * @author: lhh
      * 创建日期：2024-5-06
-     * 修改日期：2025-12-19
+     * 修改日期：2026-2-7
      * 名称： create
      * 功能：
      * 说明：
@@ -355,6 +539,16 @@ class StockModel extends StockModelBase
     public function create() {
         $created_at = date("Y-m-d H:i:s");
         $database = Registry::get('db');
+        $api = static::feach(['stock_code' => $this->stock_code, 'stock_name' => $this->stock_name]);
+        
+        if(isset($api['status']) || (!isset($api['status']) && '' == $api['name'])){
+            $errors["stock_code"] = "股票代码错误";
+            $data['status'] = 0;
+            $data['errors'] = $errors;
+            return $data;
+
+        }
+
         if(0 == $this->flag && !is_null(static::getByCode($this->stock_code))){
             $this->flag = 1;
         }
@@ -383,6 +577,15 @@ class StockModel extends StockModelBase
                 }
                 $data['status'] = 1;
                 $data['message'] = '添加成功';
+                $logModel = new LogModel($this->userid, "股票-添加", "添加了股票,stock_id:" . $this->stock_id, $created_at);
+                $log = $logModel->create();
+                if(0 == $log['status']){
+                    $database->pdo->rollBack();
+                    $data['status'] = 0;
+                    $data['message'] = $log['message'];
+                    return $data;
+                }
+
                 $database->pdo->commit();
                 
             }else{
@@ -404,16 +607,42 @@ class StockModel extends StockModelBase
     /**
      * @author: lhh
      * 创建日期：2025-6-27
-     * 修改日期：2026-1-14
+     * 修改日期：2026-2-7
      * 名称： edit
      * 功能：
      * 说明：
-     * 注意：如果修改了stock_code ，那么所有的stock_code 都要改变
+     * 注意：
      * @return mixed
      */
     public function edit() {
         $updated_at = date("Y-m-d H:i:s");
         $old_stock_code = static::geCodetById($this->stock_id);
+
+        if($old_stock_code != $this->stock_code){
+            $api = static::feach(['stock_code' => $old_stock_code, 'stock_name' => $this->stock_name]);
+            
+            if(!isset($api['status']) && $api['name'] != ''){ 
+                // 如果原股票代码工作正常，就说明是恶意修改股票代码
+                $errors["stock_code"] = "非法操作";
+                $data['status'] = 0;
+                $data['errors'] = $errors;
+                return $data;
+    
+            } else {
+                $api = static::feach(['stock_code' => $this->stock_code, 'stock_name' => $this->stock_name]);
+                
+                if(isset($api['status']) || (!isset($api['status']) && '' == $api['name'])){
+                    $errors["stock_code"] = "股票代码错误";
+                    $data['status'] = 0;
+                    $data['errors'] = $errors;
+                    return $data;
+        
+                }
+
+            }
+
+
+        }
 
         $database = Registry::get('db');
 
@@ -431,6 +660,8 @@ class StockModel extends StockModelBase
             if($stock->execute()){
                 $data['status'] = 1;
                 $data['message'] = '修改成功';
+                $cause = "修改了股票,stock_id:" . $this->stock_id;
+
                 $history = StockHistoryModel::setCost($this->stock_id, $this->stock_cost, $this->tax, $updated_at);
                 $userAndStock = UserAndStockModel::setCost($this->userid, $this->stock_id, $this->stock_cost, $this->tax, $updated_at);
                 if(0 == $history['status']){
@@ -445,6 +676,7 @@ class StockModel extends StockModelBase
                     return $data;
                 }
                 if($old_stock_code != $this->stock_code){
+                    //如果修改了stock_code ，那么所有的stock_code 都要改变, 但为了安全问题防止恶意修改，不要这样操作
                     $stock2  = $database->pdo->prepare("UPDATE ".static::tableName() ." SET stock_code=:stock_code, updated_at=:updated_at WHERE stock_code=:old_stock_code");
                     $stock2->bindParam(':old_stock_code', $old_stock_code, \PDO::PARAM_STR);
                     $stock2->bindParam(':stock_code', $this->stock_code, \PDO::PARAM_STR);
@@ -455,7 +687,19 @@ class StockModel extends StockModelBase
                         $database->pdo->rollBack();
                         return $data;
                     }
+                    $cause .= "，把股票代码" . $old_stock_code . "改为了" . $this->stock_code;
+                    
                 }
+
+                $logModel = new LogModel($this->userid, "股票-修改", $cause, $updated_at);
+                $log = $logModel->create();
+                if(0 == $log['status']){
+                    $database->pdo->rollBack();
+                    $data['status'] = 0;
+                    $data['message'] = $log['message'];
+                    return $data;
+                }
+
                 $database->pdo->commit();
             }else{
                 $database->pdo->rollBack();
@@ -478,6 +722,7 @@ class StockModel extends StockModelBase
 
 
     public static function delete($userid, $stock_id) {
+        $updated_at = date("Y-m-d H:i:s");
         $database = Registry::get('db');
         if(0  == static::getById($stock_id)['flag']){ //非测试股票不能被删除
             return [
@@ -520,6 +765,15 @@ class StockModel extends StockModelBase
                 
                 $affectedRows = $stmt->rowCount();
                 error_log("第 " . __LINE__ . " 行: 从 {$table} 删除了 {$affectedRows} 条记录");
+            }
+
+            $logModel = new LogModel($userid, "股票-删除", "删除了股票,stock_id:" . $stock_id, $updated_at);
+            $log = $logModel->create();
+            if(0 == $log['status']){
+                $database->pdo->rollBack();
+                $data['status'] = 1;
+                $data['message'] = $log['message'];
+                return $data;
             }
             
             $database->pdo->commit();
